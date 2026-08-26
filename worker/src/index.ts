@@ -109,18 +109,34 @@ const REMOTE_HTML = `<!doctype html>
   /* 分頁 3: 縮圖快速跳頁 */
   .pane-jump {
     padding: 0.8rem; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
     padding-bottom: max(1.2rem, env(safe-area-inset-bottom));
   }
   .jump-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-    padding: 0.6rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.3rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; cursor: pointer; display: flex; flex-direction: column;
+    transition: transform 0.1s, border-color 0.1s;
   }
-  .jump-card.active { border-color: var(--amber); background: #262014; }
-  .jump-card .jnum { font-size: 0.78rem; color: var(--amber); font-weight: 700; }
-  .jump-card .jtitle { font-size: 0.85rem; font-weight: 700; color: #fff; line-height: 1.3; }
+  .jump-card.active { border-color: var(--amber); box-shadow: 0 0 12px rgba(244,181,58,0.35); }
+  .jump-thumb-wrap {
+    width: 100%; aspect-ratio: 16 / 9; background: #000; position: relative;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .jump-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .jump-thumb-fallback {
+    width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center;
+    padding: 0.5rem; background: radial-gradient(circle at center, #262015, #14110b);
+    color: var(--amber-soft); text-align: center; font-size: 0.72rem; line-height: 1.25;
+  }
+  .jump-card-body {
+    padding: 0.45rem 0.6rem; display: flex; justify-content: space-between; align-items: baseline;
+    background: var(--surface-2); border-top: 1px solid var(--border);
+  }
+  .jump-card .jnum { font-size: 0.72rem; color: var(--amber); font-weight: 700; flex-shrink: 0; }
+  .jump-card .jtitle { font-size: 0.78rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
 </style>
 </head>
+
 
 <body>
 
@@ -269,7 +285,19 @@ const REMOTE_HTML = `<!doctype html>
     slideList.forEach(function(s, i) {
       var card = document.createElement('div');
       card.className = 'jump-card' + (i === curPage - 1 ? ' active' : '');
-      card.innerHTML = '<span class="jnum">第 ' + (i + 1) + ' 頁</span><span class="jtitle">' + (s.title || ('投影片 ' + (i + 1))) + '</span>';
+      var thumbSrc = s.thumb || '';
+      card.innerHTML =
+        '<div class="jump-thumb-wrap">' +
+          (thumbSrc ? '<img class="jump-thumb-img" src="' + thumbSrc + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" alt="">' : '') +
+          '<div class="jump-thumb-fallback" style="' + (thumbSrc ? 'display:none;' : '') + '">' +
+            '<span style="font-size:1.15rem;font-weight:800;color:var(--amber);">' + (i + 1) + '</span>' +
+            '<span style="font-size:0.75rem;color:#d4ccb8;margin-top:2px;">' + (s.title || ('投影片 ' + (i + 1))) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="jump-card-body">' +
+          '<span class="jnum">' + (i + 1) + ' / ' + totalPages + '</span>' +
+          '<span class="jtitle">' + (s.title || ('第 ' + (i + 1) + ' 頁')) + '</span>' +
+        '</div>';
       card.onclick = function() {
         vibrate(30);
         sendCmd({ type: 'jump', page: i });
@@ -277,6 +305,7 @@ const REMOTE_HTML = `<!doctype html>
       paneJump.appendChild(card);
     });
   }
+
 
   // ==========================================
   // 雷射筆與螢光筆觸控板 (Touchpad)
