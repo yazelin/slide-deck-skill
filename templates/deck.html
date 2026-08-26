@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>投影片標題</title>
+  <link rel="stylesheet" href="deck.css">
+</head>
+<body>
+
+<div class="bar">
+  <span><strong class="mark">系列名稱</strong> · 主題標題</span>
+  <span id="counter">1 / 4</span>
+</div>
+
+<!-- ==========================================================================
+     投影片清單 (.slide)
+     ========================================================================== -->
+
+<!-- 1: 封面 -->
+<section class="slide active">
+  <p class="kicker">主題類別 · 副標籤</p>
+  <h1>主標題文字<br><em>焦點關鍵字</em></h1>
+  <p class="sub">一句話交代這場的核心價值：你將帶走什麼，以及為什麼這件事現在重要。</p>
+</section>
+
+<!-- 2: 重點條列 -->
+<section class="slide">
+  <h2>核心重點<em>一覽</em></h2>
+  <ul class="points">
+    <li><strong>第一點</strong>：清晰的需求與背景脈絡<span class="dim">（補充說明）</span></li>
+    <li><strong>第二點</strong>：執行的關鍵步驟與常見陷阱<span class="dim">（注意細節）</span></li>
+    <li><strong>第三點</strong>：成果驗收與自動化交付<span class="dim">（具體產出）</span></li>
+  </ul>
+</section>
+
+<!-- 3: 雙欄對比 / 程式碼 / 概念 -->
+<section class="slide light">
+  <h2>架構原則：<em>兩種視角</em></h2>
+  <div class="cols">
+    <div>
+      <h3>給人看的</h3>
+      <p>清晰的文案與指引，讓參與者一目了然。</p>
+      <pre>console.log("Hello Developer!");</pre>
+      <p class="code-note">白話交代：為什麼這樣做更直覺、門檻更低。</p>
+    </div>
+    <div>
+      <h3>給機器看的</h3>
+      <p>標準的結構化資料與錯誤處理協議。</p>
+      <pre>{ "status": "ok", "next_action": "proceed" }</pre>
+      <p class="code-note">核心心法：把「誰說了算」在架構上先決定好。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4: 宣言與結尾 -->
+<section class="slide statement">
+  <p class="kicker">總結一句話</p>
+  <p class="big">把<em>規格</em>與<em>驗收標準</em>，<br>做成每個人都能上手的工具。</p>
+  <p class="sub">今晚的簡報、講義與範例原始碼全部公開在專案中。</p>
+</section>
+
+<!-- ==========================================================================
+     講者備註 (#notes) —— 每一則 <div> 對應一頁 .slide（頁數必須 1:1 吻合）
+     ========================================================================== -->
+<div id="notes">
+  <div><b>封面。</b>開場破題，用 30 秒交代今晚為什麼要聊這個主題。確認麥克風與畫面同步正常。</div>
+  <div><b>核心重點。</b>由上往下走，挑第二點講重一點。給觀眾具體的期待。</div>
+  <div><b>架構原則（淺色頁切換語氣）。</b>左邊講人、右邊講機器。強調核心心法：把規格寫清楚，執行就不會失控。</div>
+  <div><b>總結頁。</b>停一拍，收束主線。留時間給觀眾提問或進入會後交流。</div>
+</div>
+
+<!-- ==========================================================================
+     講者主控台 UI (按 'P' 開啟，支援雙視窗同步與時間節奏)
+     ========================================================================== -->
+<div id="presenter">
+  <nav id="pjump"></nav>
+  <div class="pmain">
+    <div class="phead">
+      <span class="pnum" id="pnum"></span>
+      <span class="ptimer" id="ptimer">00:00</span>
+    </div>
+    <div class="ptitle" id="ptitle"></div>
+    <div class="pnote" id="pnote"></div>
+    <div class="pnext" id="pnext"></div>
+    <div class="pfoot">← → / Space 翻頁 · N 備註疊加 · P 講者主控台 · R 計時歸零 · 兩視窗自動同步</div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
+
+<!-- ==========================================================================
+     跨平台控制核心 (支援 Windows / macOS / Linux / Mobile Touch)
+     ========================================================================== -->
+<script>
+(function() {
+  var slides = [].slice.call(document.querySelectorAll('.slide'));
+  var noteBlocks = [].slice.call(document.querySelectorAll('#notes > div'));
+  var counter = document.getElementById('counter');
+  var pnum = document.getElementById('pnum'), ptitle = document.getElementById('ptitle');
+  var pnote = document.getElementById('pnote'), pnext = document.getElementById('pnext'), ptimer = document.getElementById('ptimer');
+  var pjump = document.getElementById('pjump');
+  var KEY = 'deck-current-page';
+
+  // 節奏規劃（每頁累積目標分鐘數，超過計時器轉紅）
+  var PACE = [2, 10, 20, 30];
+
+  function titleOf(sl) {
+    var el = sl.querySelector('h1, h2, .big');
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+  }
+
+  var cur = Math.min(Math.max(parseInt(location.hash.slice(1)) || 1, 1), slides.length) - 1;
+
+  function buildJump() {
+    pjump.innerHTML = '';
+    slides.forEach(function(sl, i) {
+      var d = document.createElement('div');
+      d.className = 'pj';
+      d.innerHTML = '<img src="assets/thumbs/t' + (i + 1) + '.webp" onerror="this.style.display=\'none\'" alt="">' +
+                    (i + 1) + '. ' + titleOf(sl).slice(0, 14) + ' (' + (PACE[i] || PACE[PACE.length - 1]) + '\')';
+      d.onclick = function() { show(i); };
+      pjump.appendChild(d);
+    });
+  }
+  buildJump();
+
+  function render() {
+    slides.forEach(function(sl, j) { sl.classList.toggle('active', j === cur); });
+    noteBlocks.forEach(function(n, j) { n.classList.toggle('on', j === cur); });
+    if (counter) counter.textContent = (cur + 1) + ' / ' + slides.length;
+    if (pnum) pnum.textContent = '第 ' + (cur + 1) + ' / ' + slides.length + ' 頁 · 目標 ' + (PACE[cur] || PACE[PACE.length - 1]) + ' 分';
+    if (ptitle) ptitle.textContent = titleOf(slides[cur]);
+    if (pnote) pnote.innerHTML = noteBlocks[cur] ? noteBlocks[cur].innerHTML : '（這頁無備註）';
+    if (pnext) pnext.innerHTML = (cur + 1 < slides.length) ? ('下一頁 → <b>' + titleOf(slides[cur + 1]) + '</b>') : '（最後一頁）';
+
+    [].forEach.call(pjump.children, function(d, i) { d.classList.toggle('on', i === cur); });
+    var on = pjump.children[cur];
+    if (on && document.body.classList.contains('present')) on.scrollIntoView({ block: 'nearest' });
+  }
+
+  function show(i, remote) {
+    cur = Math.min(Math.max(i, 0), slides.length - 1);
+    render();
+    history.replaceState(null, '', '#' + (cur + 1));
+    if (!remote) {
+      try { localStorage.setItem(KEY, String(cur)); } catch (e) {}
+    }
+  }
+
+  // 跨視窗同步 (Dual-screen broadcast)
+  addEventListener('storage', function(e) {
+    if (e.key === KEY && e.newValue !== null) {
+      var v = parseInt(e.newValue, 10);
+      if (v !== cur) show(v, true);
+    }
+  });
+
+  // 跨平台鍵盤控制
+  addEventListener('keydown', function(e) {
+    if (['ArrowRight', ' ', 'PageDown'].indexOf(e.key) > -1) { e.preventDefault(); show(cur + 1); }
+    else if (['ArrowLeft', 'PageUp'].indexOf(e.key) > -1) { e.preventDefault(); show(cur - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { document.body.classList.toggle('show-notes'); }
+    else if (e.key === 'p' || e.key === 'P') {
+      document.body.classList.toggle('present');
+      if (document.body.classList.contains('present')) {
+        var on = pjump.children[cur]; if (on) on.scrollIntoView({ block: 'center' });
+      }
+    }
+    else if (e.key === 'r' || e.key === 'R') { t0 = Date.now(); }
+  });
+
+  // 行動裝置與觸控支援
+  var tx = null;
+  addEventListener('touchstart', function(e) { tx = e.touches[0].clientX; }, { passive: true });
+  addEventListener('touchend', function(e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50 && !e.target.closest('video, iframe, #notes, .lightbox')) {
+      show(cur + (dx < 0 ? 1 : -1));
+    }
+    tx = null;
+  }, { passive: true });
+
+  // 節奏計時器
+  var t0 = Date.now();
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  setInterval(function() {
+    var sec = Math.floor((Date.now() - t0) / 1000);
+    if (ptimer) {
+      ptimer.textContent = two(Math.floor(sec / 60)) + ':' + two(sec % 60);
+      ptimer.style.color = sec > (PACE[cur] || PACE[PACE.length - 1]) * 60 ? '#ff6b6b' : '#fff';
+    }
+  }, 1000);
+
+  if (/[?&](present|p)(=|&|$)/.test(location.search)) document.body.classList.add('present');
+
+  // 延遲載入 Iframe 與 Video
+  document.querySelectorAll('.fsbtn[data-load]').forEach(function(btn) {
+    btn.onclick = function() {
+      var slot = document.getElementById(btn.dataset.load + '-slot');
+      if (!slot || slot.tagName === 'IFRAME') return;
+      var f = document.createElement('iframe');
+      f.className = 'livebox'; f.id = slot.id; f.src = slot.dataset.src;
+      f.setAttribute('loading', 'lazy');
+      slot.replaceWith(f);
+      btn.textContent = '已載入';
+    };
+  });
+
+  document.querySelectorAll('.fsbtn[data-max]').forEach(function(btn) {
+    btn.onclick = function() {
+      var w = document.getElementById(btn.dataset.max);
+      if (!w) return;
+      w.classList.toggle('maxi');
+      document.body.classList.toggle('has-maxi', w.classList.contains('maxi'));
+      btn.textContent = w.classList.contains('maxi') ? '還原' : '滿版';
+    };
+  });
+
+  // 圖片燈箱
+  var lb = document.getElementById('lightbox'), lbi = document.getElementById('lightbox-img');
+  document.querySelectorAll('img.shot').forEach(function(im) {
+    im.onclick = function() { lbi.src = im.src; lbi.alt = im.alt; lb.classList.add('open'); };
+  });
+  if (lb) {
+    lb.onclick = function() { lb.classList.remove('open'); };
+    addEventListener('keydown', function(e) { if (e.key === 'Escape') lb.classList.remove('open'); });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

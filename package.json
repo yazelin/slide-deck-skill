@@ -1,0 +1,18 @@
+{
+  "name": "slide-deck-skill",
+  "version": "1.0.0",
+  "description": "跨平台專業 16:9 網頁簡報與講義製作 Skill（支援雙螢幕同步主控台、PACE節奏計時、自動化驗證與 PDF 匯出）",
+  "main": "deck.mjs",
+  "type": "module",
+  "scripts": {
+    "init": "node deck.mjs init",
+    "verify": "node deck.mjs verify",
+    "export": "node deck.mjs export"
+  },
+  "keywords": ["slides", "presentation", "html-deck", "presenter-mode", "playwright", "pdf-export"],
+  "author": "林亞澤 (Yaze Lin)",
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}

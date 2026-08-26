@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>學員講義 · 主題標題</title>
+<style>
+:root {
+  --ink: #1b2420;
+  --bg: #ffffff;
+  --card: #f8faf9;
+  --line: #e3e8e5;
+  --muted: #5e6d66;
+  --accent: #177f92;
+  --gold: #b3730e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  color: var(--ink); background: var(--bg); line-height: 1.75; font-size: 14.5px;
+}
+.page { max-width: 820px; margin: 0 auto; padding: 2.5rem 2rem; }
+h1 { font-family: "Noto Serif TC", "Songti TC", serif; font-size: 1.85rem; margin: .2rem 0 .8rem; color: var(--ink); }
+h2 { font-family: "Noto Serif TC", serif; font-size: 1.25rem; margin: 1.8rem 0 .6rem; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
+p { margin-bottom: .8rem; }
+.meta { font-size: .85rem; color: var(--muted); margin-bottom: 1.2rem; }
+ul, ol { margin: .4rem 0 .9rem 1.4rem; }
+li { margin-bottom: .35rem; }
+table { width: 100%; border-collapse: collapse; margin: .9rem 0 1.4rem; font-size: .92rem; }
+th, td { padding: .55rem .75rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { background: var(--card); color: var(--accent); font-weight: 700; }
+code { font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace; background: #eef1ef; padding: .15rem .35rem; border-radius: 4px; font-size: .88em; }
+pre {
+  background: #f4f7f5; border-left: 3px solid var(--accent); padding: .7rem .9rem;
+  border-radius: 0 6px 6px 0; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin: .8rem 0 1.2rem;
+  font-family: ui-monospace, "SF Mono", monospace; font-size: .88rem; line-height: 1.6;
+}
+.small { font-size: .88rem; color: var(--muted); }
+.footer { margin-top: 2.5rem; border-top: 1px solid var(--line); padding-top: .8rem; font-size: .85rem; color: var(--muted); text-align: center; }
+@media print {
+  body { font-size: 10.5pt; }
+  .page { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, .card, pre { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<p class="meta">線上分享 學員講義 · 時間資訊</p>
+<h1>主題標題名稱</h1>
+<p class="meta">一句話總結：這份講義將引導你完成什麼，以及關鍵的參考資源。</p>
+
+<h2>一、今晚會用到的連結與資源</h2>
+<ul>
+  <li>主要網站/展示：<code>https://example.com/project</code></li>
+  <li>開源原始碼與說明：<code>https://github.com/your-username/repo</code></li>
+  <li>給 AI 讀的標準規則：<code>https://example.com/llms.txt</code></li>
+</ul>
+
+<h2>二、核心知識點整理</h2>
+<table>
+  <tr>
+    <th style="width:25%">角色/階段</th>
+    <th style="width:40%">核心任務</th>
+    <th style="width:35%">實用技巧 / 避坑指南</th>
+  </tr>
+  <tr>
+    <td><strong>面向一</strong></td>
+    <td>釐清需求、定出規格</td>
+    <td>先用自然語言描述，再請 AI 梳理出驗收條件。</td>
+  </tr>
+  <tr>
+    <td><strong>面向二</strong></td>
+    <td>架構落實、自動化協作</td>
+    <td>回傳明確的 <code>next_action</code>，避免 AI 長流程盲猜。</td>
+  </tr>
+</table>
+
+<h2>三、快速上手指令</h2>
+<p class="small">一行指令完成設定與安裝：</p>
+<pre>git clone https://github.com/your-username/project
+cd project && npm install</pre>
+
+<div class="footer">
+  講義由 林亞澤 整理分享 · 授權採 CC BY-NC 4.0
+</div>
+
+</div>
+</body>
+</html>
