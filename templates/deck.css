@@ -269,3 +269,10 @@ body.show-notes #notes {
 }
 .remote-close:hover { background: #3d3522; }
 
+/* Laser Pointer & Highlighter Fullscreen Canvas */
+#pointer-canvas {
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 9999; display: block;
+}
+
+

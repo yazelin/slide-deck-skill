@@ -102,6 +102,7 @@
 </div>
 
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
+<canvas id="pointer-canvas"></canvas>
 
 <!-- ==========================================================================
      跨平台控制核心 (支援 Windows / macOS / Linux / Mobile / 100% 離線 SVG QR)
@@ -111,7 +112,6 @@
 (function() {
   // 自動偵測中繼伺服器（本地 Node.js 伺服器或 Cloudflare Worker）
   var SYNC_SERVER = (location.protocol.startsWith('http') && !location.hostname.includes('github.io')) ? location.origin : 'https://deck-sync.yazelinj303.workers.dev';
-
 
   var slides = [].slice.call(document.querySelectorAll('.slide'));
   var noteBlocks = [].slice.call(document.querySelectorAll('#notes > div'));
@@ -163,6 +163,7 @@
 
   function show(i, remote) {
     cur = Math.min(Math.max(i, 0), slides.length - 1);
+    strokes = []; // 換頁自動清除筆跡
     render();
     history.replaceState(null, '', '#' + (cur + 1));
     if (!remote) {
@@ -197,6 +198,27 @@
           if (msg.type === 'next') show(cur + 1);
           else if (msg.type === 'prev') show(cur - 1);
           else if (msg.type === 'jump' && typeof msg.page === 'number') show(msg.page);
+          else if (msg.type === 'laser') {
+            laserData = msg;
+          }
+          else if (msg.type === 'draw') {
+            if (msg.state === 'start') {
+              lastDrawPoint = { x: msg.x, y: msg.y };
+            } else if (msg.state === 'move' && lastDrawPoint) {
+              strokes.push({
+                x1: lastDrawPoint.x, y1: lastDrawPoint.y,
+                x2: msg.x, y2: msg.y,
+                color: msg.color || '#f4b53a',
+                time: Date.now()
+              });
+              lastDrawPoint = { x: msg.x, y: msg.y };
+            } else if (msg.state === 'end') {
+              lastDrawPoint = null;
+            }
+          }
+          else if (msg.type === 'draw_clear') {
+            strokes = [];
+          }
         } catch (err) {}
       };
       syncWs.onclose = function() { setTimeout(initSyncSocket, 3000); };
@@ -212,10 +234,73 @@
         total: slides.length,
         title: titleOf(slides[cur]),
         note: noteBlocks[cur] ? noteBlocks[cur].innerHTML : '',
-        timer: ptimer ? ptimer.textContent : '00:00'
+        timer: ptimer ? ptimer.textContent : '00:00',
+        slides: slides.map(function(s, i) { return { title: titleOf(s) }; })
       }));
     }
   }
+
+  // ==========================================
+  // 雷射筆與螢光筆畫布渲染 (Canvas Engine)
+  // ==========================================
+  var pCanvas = document.getElementById('pointer-canvas');
+  var pCtx = pCanvas ? pCanvas.getContext('2d') : null;
+  var laserData = { active: false, x: 0, y: 0 };
+  var strokes = [];
+  var lastDrawPoint = null;
+
+  function resizeCanvas() {
+    if (!pCanvas) return;
+    pCanvas.width = window.innerWidth * (window.devicePixelRatio || 1);
+    pCanvas.height = window.innerHeight * (window.devicePixelRatio || 1);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function renderPointer() {
+    if (!pCtx) return;
+    var w = pCanvas.width, h = pCanvas.height;
+    var dpr = window.devicePixelRatio || 1;
+    pCtx.clearRect(0, 0, w, h);
+
+    var now = Date.now();
+
+    // 繪製螢光筆線條
+    if (strokes.length > 0) {
+      for (var i = strokes.length - 1; i >= 0; i--) {
+        var s = strokes[i];
+        var age = now - s.time;
+        if (age > 3500) { strokes.splice(i, 1); continue; }
+        var alpha = Math.max(0, 1 - age / 3500) * 0.75;
+        pCtx.strokeStyle = 'rgba(244, 181, 58, ' + alpha + ')';
+        pCtx.lineWidth = 8 * dpr;
+        pCtx.lineCap = 'round';
+        pCtx.lineJoin = 'round';
+        pCtx.beginPath();
+        pCtx.moveTo(s.x1 * w, s.y1 * h);
+        pCtx.lineTo(s.x2 * w, s.y2 * h);
+        pCtx.stroke();
+      }
+    }
+
+    // 繪製雷射光點
+    if (laserData.active) {
+      var lx = laserData.x * w, ly = laserData.y * h;
+      var grad = pCtx.createRadialGradient(lx, ly, 2 * dpr, lx, ly, 18 * dpr);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.2, 'rgba(255, 60, 60, 0.95)');
+      grad.addColorStop(0.6, 'rgba(255, 40, 40, 0.45)');
+      grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      pCtx.fillStyle = grad;
+      pCtx.beginPath();
+      pCtx.arc(lx, ly, 18 * dpr, 0, Math.PI * 2);
+      pCtx.fill();
+    }
+
+    requestAnimationFrame(renderPointer);
+  }
+  requestAnimationFrame(renderPointer);
+
 
   // 手機遙控 QR Code 與彈窗 (100% 離線純前端 SVG 生成)
   var remoteModal = document.getElementById('remote-modal');
