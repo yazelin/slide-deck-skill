@@ -143,12 +143,13 @@ const REMOTE_HTML = `<!doctype html>
     <div class="slide-title" id="title">準備就緒</div>
     <div class="note-box" id="notes">尚未收到講稿備註</div>
   </div>
-  <div class="hint">點擊按鈕或音量鍵皆可翻頁</div>
+  <div class="hint">點擊按鈕或螢幕左右滑動皆可翻頁</div>
   <div class="controls">
     <button class="btn btn-prev" id="btn-prev">◀ 上一頁</button>
     <button class="btn btn-next" id="btn-next">下一頁 ▶</button>
   </div>
 </div>
+
 
 <!-- 分頁 2: 雷射筆與畫筆觸控板 -->
 <div class="tab-pane pane-laser" id="pane-laser">
@@ -360,11 +361,30 @@ const REMOTE_HTML = `<!doctype html>
   touchpad.addEventListener('touchend', function(e) { handleTouch(e, 'end'); }, { passive: false });
   touchpad.addEventListener('touchcancel', function(e) { handleTouch(e, 'end'); }, { passive: false });
 
+  // 遙控面板左右滑動翻頁支援
+  var paneRemote = document.getElementById('pane-remote');
+  var ptx = null;
+  paneRemote.addEventListener('touchstart', function(e) {
+    if (e.target.closest('button, .note-box')) return;
+    ptx = e.touches[0].clientX;
+  }, { passive: true });
+  paneRemote.addEventListener('touchend', function(e) {
+    if (ptx === null) return;
+    var dx = e.changedTouches[0].clientX - ptx;
+    if (Math.abs(dx) > 45) {
+      vibrate(40);
+      if (dx < 0) sendCmd('next');
+      else sendCmd('prev');
+    }
+    ptx = null;
+  }, { passive: true });
+
   connect();
 })();
 </script>
 </body>
 </html>`
+
 
 export class DeckRoom implements DurableObject {
   state: DurableObjectState
