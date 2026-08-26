@@ -234,12 +234,13 @@ body.present #presenter {
 /* In-slide Notes overlay (Press 'N') */
 #notes { display: none; }
 body.show-notes #notes {
-  display: block; position: fixed; bottom: 1.5rem; right: 2rem; max-width: 28rem; max-height: 35vh;
-  overflow-y: auto; background: rgba(18, 16, 12, .94); border: 1px solid var(--amber);
-  border-radius: 8px; padding: 1rem 1.4rem; color: #eae4d5; font-size: .88rem; line-height: 1.7; z-index: 80;
+  display: block; position: fixed; left: 0; right: 0; bottom: 0; max-height: 42vh;
+  overflow-y: auto; background: rgba(14, 12, 8, .97); color: #eae4d5; z-index: 30;
+  padding: 1rem 2rem; border-top: 2px solid var(--amber); font-size: 1.02rem; line-height: 1.85;
 }
 #notes > div { display: none; }
 #notes > div.on { display: block; }
+#notes b { color: var(--amber); }
 
 /* Remote Controller Button & Modal */
 .premote-btn {
