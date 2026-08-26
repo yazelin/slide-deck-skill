@@ -7,7 +7,7 @@ const REMOTE_HTML = `<!doctype html>
 <html lang="zh-TW">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>簡報手機遙控器</title>
 <style>
   :root {
@@ -15,48 +15,55 @@ const REMOTE_HTML = `<!doctype html>
     --amber: #f4b53a; --amber-active: #d98a1e; --cream: #f3efe6; --muted: #8c846f;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-  body {
+  html, body {
+    height: 100%; height: 100dvh;
     background: var(--bg); color: var(--cream);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    overflow: hidden; overscroll-behavior: none;
+  }
+  body {
+    display: flex; flex-direction: column;
   }
   .header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.8rem 1.2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+    padding: 0.7rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border);
+    padding-top: max(0.7rem, env(safe-area-inset-top));
   }
-  .status { font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; color: var(--muted); }
+  .status { font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; color: var(--muted); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
   .dot.connected { background: #22c55e; }
   .timer { font-family: ui-monospace, monospace; font-size: 1.1rem; font-weight: 700; color: #fff; }
   
   .info {
-    padding: 1rem 1.2rem; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 0.75rem 1rem; flex: 1 1 0%; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 0.4rem; -webkit-overflow-scrolling: touch;
   }
-  .page-num { font-size: 0.9rem; color: var(--amber); font-weight: 700; }
-  .slide-title { font-size: 1.25rem; font-weight: 700; line-height: 1.4; color: #fff; }
+  .page-num { font-size: 0.85rem; color: var(--amber); font-weight: 700; }
+  .slide-title { font-size: 1.15rem; font-weight: 700; line-height: 1.35; color: #fff; }
   .note-box {
-    margin-top: 0.4rem; background: var(--surface); border-left: 3px solid var(--amber);
-    padding: 0.8rem 1rem; border-radius: 0 6px 6px 0; font-size: 0.95rem; line-height: 1.6;
-    color: #ded7c6; flex: 1; overflow-y: auto;
+    margin-top: 0.3rem; background: var(--surface); border-left: 3px solid var(--amber);
+    padding: 0.75rem 0.9rem; border-radius: 0 6px 6px 0; font-size: 0.92rem; line-height: 1.6;
+    color: #ded7c6; flex: 1 1 0%; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
   .note-box b { color: var(--amber); }
 
   .controls {
-    display: grid; grid-template-columns: 1fr 1.6fr; gap: 0.8rem;
-    padding: 1rem; background: var(--surface); border-top: 1px solid var(--border);
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    flex-shrink: 0; display: grid; grid-template-columns: 1fr 1.6fr; gap: 0.7rem;
+    padding: 0.75rem 1rem; background: var(--surface); border-top: 1px solid var(--border);
+    padding-bottom: max(1.2rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }
   .btn {
-    border: 0; border-radius: 12px; font-size: 1.25rem; font-weight: 700;
+    border: 0; border-radius: 12px; font-size: 1.15rem; font-weight: 700;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    padding: 1.4rem 0; touch-action: manipulation; transition: transform 0.08s, filter 0.08s;
+    padding: 1.1rem 0; touch-action: manipulation; transition: transform 0.08s, filter 0.08s;
   }
   .btn:active { transform: scale(0.96); filter: brightness(0.9); }
   .btn-prev { background: #26221a; color: var(--muted); border: 1px solid var(--border); }
   .btn-next { background: var(--amber); color: #12100c; }
-  .hint { text-align: center; font-size: 0.72rem; color: var(--muted); padding-bottom: 0.4rem; }
+  .hint { flex-shrink: 0; text-align: center; font-size: 0.7rem; color: var(--muted); padding: 0.2rem 0; }
 </style>
 </head>
+
 <body>
 
 <div class="header">

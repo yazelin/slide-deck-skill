@@ -95,7 +95,7 @@
   <div class="remote-dialog">
     <h3>📱 手機無線遙控</h3>
     <p>手機相機掃描下方 QR Code，免裝 App 即可在台上無線翻頁與即時查看講稿備忘：</p>
-    <img class="remote-qr" id="remote-qr" alt="QR Code">
+    <div class="remote-qr" id="remote-qr"></div>
     <div class="remote-pin" id="remote-pin"></div>
     <button class="remote-close" id="remote-close" type="button">關閉</button>
   </div>
@@ -104,12 +104,14 @@
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
 
 <!-- ==========================================================================
-     跨平台控制核心 (支援 Windows / macOS / Linux / Mobile / WebSocket Remote)
+     跨平台控制核心 (支援 Windows / macOS / Linux / Mobile / 100% 離線 SVG QR)
      ========================================================================== -->
+<script src="qrcode.min.js"></script>
 <script>
 (function() {
-  // 公開中繼伺服器（可自架 Cloudflare Worker 替換）
-  var SYNC_SERVER = 'https://deck-sync.yazelinj303.workers.dev';
+  // 自動偵測中繼伺服器（本地 Node.js 伺服器或 Cloudflare Worker）
+  var SYNC_SERVER = (location.protocol.startsWith('http') && !location.hostname.includes('github.io')) ? location.origin : 'https://deck-sync.yazelinj303.workers.dev';
+
 
   var slides = [].slice.call(document.querySelectorAll('.slide'));
   var noteBlocks = [].slice.call(document.querySelectorAll('#notes > div'));
@@ -215,7 +217,7 @@
     }
   }
 
-  // 手機遙控 QR Code 與彈窗
+  // 手機遙控 QR Code 與彈窗 (100% 離線純前端 SVG 生成)
   var remoteModal = document.getElementById('remote-modal');
   var premoteBtn = document.getElementById('premote-btn');
   var remoteClose = document.getElementById('remote-close');
@@ -225,7 +227,14 @@
   if (premoteBtn) {
     premoteBtn.onclick = function() {
       var remoteUrl = SYNC_SERVER + '/remote?room=' + encodeURIComponent(roomId) + '&pin=' + encodeURIComponent(roomPin);
-      remoteQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=' + encodeURIComponent(remoteUrl);
+      if (typeof qrcode !== 'undefined') {
+        var qr = qrcode(0, 'M');
+        qr.addData(remoteUrl);
+        qr.make();
+        remoteQr.innerHTML = qr.createSvgTag(4, 2);
+      } else {
+        remoteQr.innerHTML = '<img style="width:100%;height:100%" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=' + encodeURIComponent(remoteUrl) + '">';
+      }
       remotePinEl.textContent = '房間: ' + roomId + ' · 密碼: ' + roomPin;
       remoteModal.classList.add('open');
     };
@@ -234,6 +243,7 @@
   if (remoteModal) {
     remoteModal.onclick = function(e) { if (e.target === remoteModal) remoteModal.classList.remove('open'); };
   }
+
 
   // 跨平台鍵盤控制
   addEventListener('keydown', function(e) {
