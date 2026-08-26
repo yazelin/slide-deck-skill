@@ -85,7 +85,7 @@ if (!targetHtml) {
 
 const resolvedHtmlPath = resolve(here, targetHtml)
 if (!existsSync(resolvedHtmlPath)) {
-  console.error(`❌ 找不到簡報檔案: ${resolvedHtmlPath}`)
+  console.error(`找不到簡報檔案: ${resolvedHtmlPath}`)
   process.exit(1)
 }
 
@@ -94,8 +94,8 @@ const TARGET_DIR = dirname(resolvedHtmlPath)
 const BASE_NAME = basename(resolvedHtmlPath, extname(resolvedHtmlPath))
 const W = 1600, H = 900
 
-console.log(`🎯 目標簡報: ${resolvedHtmlPath}`)
-console.log(`⚙️ 執行模式: ${command}`)
+console.log(`目標簡報: ${resolvedHtmlPath}`)
+console.log(`執行模式: ${command}`)
 
 const pw = await loadPlaywright()
 const chromePath = findChrome()
@@ -116,10 +116,10 @@ await p.goto(DECK_URL, { waitUntil: 'load' })
 
 const n = await p.locator('.slide').count()
 const notes = await p.locator('#notes > div').count()
-console.log(`📊 統計: 共 ${n} 頁投影片, ${notes} 則講者備註`)
+console.log(`統計: 共 ${n} 頁投影片, ${notes} 則講者備註`)
 
 if (n !== notes) {
-  console.error(`❌ 錯誤: 投影片頁數 (${n}) 與備註數 (${notes}) 不相符！請確認每頁 .slide 都有對應的 <div> 備註。`)
+  console.error(`錯誤: 投影片頁數 (${n}) 與備註數 (${notes}) 不相符。請確認每頁 .slide 都有對應的 <div> 備註。`)
   await b.close()
   process.exit(1)
 }
@@ -138,7 +138,7 @@ for (let i = 1; i <= n; i++) {
   // 驗證計數器
   const at = await p.evaluate(() => document.getElementById('counter')?.textContent?.trim() || '')
   if (at && at !== `${i} / ${n}`) {
-    console.error(`❌ 第 ${i} 頁翻頁失敗，計數器顯示: ${at}`)
+    console.error(`第 ${i} 頁翻頁失敗，計數器顯示: ${at}`)
     await b.close()
     process.exit(1)
   }
@@ -146,7 +146,7 @@ for (let i = 1; i <= n; i++) {
   // 驗證 active 數量
   const activeCount = await p.locator('.slide.active').count()
   if (activeCount !== 1) {
-    console.error(`❌ 第 ${i} 頁 active 狀態異常 (active=${activeCount})`)
+    console.error(`第 ${i} 頁 active 狀態異常 (active=${activeCount})`)
     await b.close()
     process.exit(1)
   }
@@ -162,7 +162,7 @@ for (let i = 1; i <= n; i++) {
   })
 
   if (over.h || over.w) {
-    console.warn(`⚠️ 警告: 第 ${i} 頁內容超出可視範圍 (溢出: ${JSON.stringify(over)})`)
+    console.warn(`警告: 第 ${i} 頁內容超出可視範圍 (溢出: ${JSON.stringify(over)})`)
   }
 
   if (command !== 'verify') {
@@ -171,12 +171,12 @@ for (let i = 1; i <= n; i++) {
 }
 
 if (errs.length > 0) {
-  console.error('❌ JS 執行錯誤:', errs)
+  console.error('JS 執行錯誤:', errs)
   await b.close()
   process.exit(1)
 }
 
-console.log('✅ 逐頁結構與翻頁驗收通過！')
+console.log('OK: 逐頁結構與翻頁驗收通過。')
 
 // 產出縮圖
 if (command === 'all' || command === 'thumbs') {
@@ -193,7 +193,7 @@ if (command === 'all' || command === 'thumbs') {
     })
   }
   await tp.close()
-  console.log(`🖼️ 主控台縮圖 ${n} 張已生成 ➔ assets/thumbs/`)
+  console.log(`縮圖: ${n} 張已生成 -> assets/thumbs/`)
 }
 
 // 匯出 16:9 PDF
@@ -217,8 +217,9 @@ if (command === 'all' || command === 'pdf') {
   })
   const { writeFileSync } = await import('node:fs')
   writeFileSync(outPdfPath, pdfBuffer)
-  console.log(`📕 16:9 投影片 PDF 匯出完成 ➔ ${outPdfPath}`)
+  console.log(`PDF: 16:9 投影片 PDF 匯出完成 -> ${outPdfPath}`)
 }
 
 await b.close()
-console.log('🎉 全部工作完成！')
+console.log('完成。')
+

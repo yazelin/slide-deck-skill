@@ -5,11 +5,11 @@ description: Use when the user wants to create, edit, verify, or export professi
 
 # slide-deck 簡報製作與自動化 Skill
 
-這是一套經過實戰驗證的 **Agent-Native 16:9 網頁簡報系統**。支援雙螢幕跨視窗同步主控台、PACE 節奏計時、逐頁排版溢出檢查、高解析度截圖轉 PDF、與配套講義生成。
+這是一套經過實戰驗證的 16:9 網頁簡報系統。支援雙螢幕跨視窗同步主控台、PACE 節奏計時、逐頁排版溢出檢查、高解析度截圖轉 PDF、與配套講義生成。
 
 ---
 
-## 🚀 快速指令
+## 快速指令
 
 ```bash
 # 1. 建立新簡報專案骨架
@@ -27,7 +27,7 @@ node handout-to-pdf.mjs
 
 ---
 
-## 🎨 投影片視覺與排版規格
+## 投影片視覺與排版規格
 
 ### 1. 頁面模式（Slide Modes）
 - **預設暗底頁（Dark Theme）**：琥珀金（`--amber`）焦點字 + 墨黑底（`--ink`）。適合主體概念、重點條列與代碼。
@@ -36,10 +36,10 @@ node handout-to-pdf.mjs
 
 ### 2. 常用元件
 - **重點清單**：`<ul class="points"><li><strong>標題</strong>：內容<span class="dim">（補充）</span></li></ul>`
-- **雙欄/三欄**：`<div class="cols">` 或 `<div class="cols.three">`
+- **雙欄／三欄**：`<div class="cols">` 或 `<div class="cols.three">`
 - **代碼區塊**：`<pre>代碼</pre><p class="code-note">白話交代與心法</p>`
 - **統計大數字**：`<div class="stats"><div class="stat"><b>4:48</b><span>交付時間</span></div></div>`
-- **互動即時站台/影片**：
+- **互動即時站台／影片**：
   ```html
   <div class="livewrap" id="demo-box">
     <button class="fsbtn" data-load="demo-box" data-max="demo-box" type="button">載入</button>
@@ -49,7 +49,7 @@ node handout-to-pdf.mjs
 
 ---
 
-## 📝 講稿備註（Speaker Notes）鐵則
+## 講稿備註（Speaker Notes）鐵則
 
 1. **1:1 數量契約**：`<div id="notes">` 內部的 `<div>` 數量**必須與 `<section class="slide">` 完全一致**，否則 `deck-tools.mjs` 會拋出錯誤中斷。
 2. **備忘撰寫公式**：
@@ -59,28 +59,28 @@ node handout-to-pdf.mjs
 
 ---
 
-## ⏱️ 節奏規劃（PACE 陣列）
+## 節奏規劃（PACE 陣列）
 
 在 `<script>` 內的 `PACE` 陣列定義每一頁的**累積目標分鐘數**（例如 30 頁 90 分鐘直播：`[2, 5, 8, 12, ... 90]`）：
 - 當講到該頁時，若時間超過目標數值，主控台右上角的計時器會**自動由白轉紅**提醒講者加速。
 
 ---
 
-## 💻 跨平台與播放快捷鍵
+## 跨平台與播放快捷鍵
 
 | 按鍵 | 功能 | 備註 |
 | :--- | :--- | :--- |
 | **`←` / `→` / `Space` / `PageDown`** | 前後翻頁 | 跨瀏覽器與簡報筆通用 |
-| **`Home` / `End`** | 回首頁 / 跳到最後一頁 | 快速跳轉 |
-| **`P`** | 開啟／關閉 **講者主控台** | 兩視窗透過 `localStorage` 即時雙向同步 |
+| **`Home` / `End`** | 回首頁／跳到最後一頁 | 快速跳轉 |
+| **`P`** | 開啟／關閉講者主控台 | 兩視窗透過 localStorage 即時雙向同步 |
 | **`N`** | 在投影片上疊加備註視窗 | 單螢幕演練時使用 |
 | **`R`** | 節奏計時器歸零 | 開播前重置時間 |
 | **`Esc`** | 退出滿版或關閉燈箱 | 逃生口 |
-| **觸控滑動（Swipe）** | 平板 / 手機觸控翻頁 | 支援行動裝置 |
+| **觸控滑動（Swipe）** | 平板／手機觸控翻頁 | 支援行動裝置 |
 
 ---
 
-## 🛠️ 自動化驗證工具原理（`deck-tools.mjs`）
+## 自動化驗證工具原理（`deck-tools.mjs`）
 
 `deck-tools.mjs` 透過 Playwright 執行無頭瀏覽器，進行四項嚴格驗收：
 1. **頁數 vs 備註一致性檢查**：確保講稿不缺漏。

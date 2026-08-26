@@ -16,7 +16,7 @@ const [cmd, targetDir, ...options] = process.argv.slice(2)
 
 function usage() {
   console.log(`
-🎬 slide-deck CLI — 專業 16:9 網頁簡報與講義工具 (跨平台與 100% 離線支援)
+slide-deck CLI — 專業 16:9 網頁簡報與講義工具 (跨平台與 100% 離線支援)
 
 用法:
   node deck.mjs init <專案路徑> [--title "標題"]   初始化新簡報與講義專案
@@ -50,7 +50,7 @@ if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
 
 if (cmd === 'init') {
   if (!targetDir) {
-    console.error('❌ 請指定專案目錄路徑，例如: node deck.mjs init ./my-deck')
+    console.error('請指定專案目錄路徑，例如: node deck.mjs init ./my-deck')
     process.exit(1)
   }
 
@@ -79,8 +79,8 @@ if (cmd === 'init') {
   writeFileSync(join(dest, 'deck.html'), deckHtml)
 
   console.log(`
-🎉 簡報專案已建立在: ${dest}
-📄 檔案結構:
+簡報專案已建立在: ${dest}
+檔案結構:
   ├── deck.html           (投影片主檔，瀏覽器直接開或雙擊即播)
   ├── deck.css            (響應式 16:9 樣式庫)
   ├── qrcode.min.js       (純前端離線 QR Code 產生器)
@@ -89,7 +89,7 @@ if (cmd === 'init') {
   ├── handout-to-pdf.mjs  (講義 A4 PDF 匯出工具)
   └── assets/thumbs/      (主控台縮圖目錄)
 
-🚀 快速開始:
+快速開始:
   cd ${targetDir}
   # 有外網或雙螢幕：直接用瀏覽器開 deck.html 播放
   # 沒外網純同區網：node /home/ct/slide-deck-skill/deck.mjs serve 8080 .
@@ -191,12 +191,12 @@ if (cmd === 'serve') {
 
   server.listen(port, '0.0.0.0', () => {
     console.log(`
-📡 100% 離線區域網路簡報伺服器已啟動！
+離線區域網路簡報伺服器已啟動
 --------------------------------------------------
-💻 電腦投影/主控台： http://localhost:${port}/deck.html
-📱 同區網手機遙控：  http://${lanIp}:${port}/remote?room=demo
+電腦投影／主控台： http://localhost:${port}/deck.html
+同區網手機遙控：  http://${lanIp}:${port}/remote?room=demo
 --------------------------------------------------
-（手機連同一個 Wi-Fi 或連電腦開的熱點即可秒連遙控，零外網亦可運行）
+（手機連同一個 Wi-Fi 或連電腦開的熱點即可連線遙控）
 `)
   })
   return
@@ -216,7 +216,7 @@ if (cmd === 'verify' || cmd === 'export' || cmd === 'thumbs' || cmd === 'pdf') {
   })
   child.on('exit', code => process.exit(code || 0))
 } else {
-  console.error(`❌ 未知指令: ${cmd}`)
+  console.error(`未知指令: ${cmd}`)
   usage()
   process.exit(1)
 }

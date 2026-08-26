@@ -56,7 +56,7 @@ if (!targetHtml) {
 
 const resolvedPath = resolve(here, targetHtml)
 if (!existsSync(resolvedPath)) {
-  console.error(`❌ 找不到講義檔案: ${resolvedPath}`)
+  console.error(`找不到講義檔案: ${resolvedPath}`)
   process.exit(1)
 }
 
@@ -65,7 +65,7 @@ const TARGET_DIR = dirname(resolvedPath)
 const BASE_NAME = basename(resolvedPath, extname(resolvedPath))
 const OUT_PDF = join(TARGET_DIR, `${BASE_NAME}.pdf`)
 
-console.log(`📄 正在轉換講義: ${resolvedPath} ➔ ${OUT_PDF}`)
+console.log(`正在轉換講義: ${resolvedPath} -> ${OUT_PDF}`)
 
 const pw = await loadPlaywright()
 const chromePath = findChrome()
@@ -94,11 +94,12 @@ const over = await p.evaluate(() => {
   return { bad, docOver: document.documentElement.scrollWidth > document.documentElement.clientWidth + 2 }
 })
 
-console.log(`✅ 講義 PDF 產生完成（大小: ${(pdf.length / 1024).toFixed(0)} KB）`)
+console.log(`講義 PDF 產生完成（大小: ${(pdf.length / 1024).toFixed(0)} KB）`)
 if (over.bad.length || over.docOver) {
-  console.warn('⚠️ 警告: 講義存在橫向溢出元素:', over)
+  console.warn('警告: 講義存在橫向溢出元素:', over)
 } else {
-  console.log('✨ 排版檢查無橫向溢出！')
+  console.log('排版檢查無橫向溢出。')
 }
 
 await b.close()
+

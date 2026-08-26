@@ -147,9 +147,9 @@ const REMOTE_HTML = `<!doctype html>
 
 <!-- 分頁導航 -->
 <div class="tabs">
-  <button class="tab-btn active" data-tab="remote">🎮 翻頁遙控</button>
-  <button class="tab-btn" data-tab="laser">🔴 雷射 / 🖍️ 畫筆</button>
-  <button class="tab-btn" data-tab="jump">🖼️ 縮圖跳頁</button>
+  <button class="tab-btn active" data-tab="remote">翻頁遙控</button>
+  <button class="tab-btn" data-tab="laser">雷射與畫筆</button>
+  <button class="tab-btn" data-tab="jump">縮圖跳頁</button>
 </div>
 
 <!-- 分頁 1: 標準遙控 -->
@@ -166,13 +166,12 @@ const REMOTE_HTML = `<!doctype html>
   </div>
 </div>
 
-
 <!-- 分頁 2: 雷射筆與畫筆觸控板 -->
 <div class="tab-pane pane-laser" id="pane-laser">
   <div class="tool-bar">
-    <button class="tool-btn active" id="btn-mode-laser">🔴 雷射光點</button>
-    <button class="tool-btn" id="btn-mode-pen">🖍️ 螢光筆</button>
-    <button class="tool-btn clear" id="btn-clear-pen">🧹 清除筆跡</button>
+    <button class="tool-btn active" id="btn-mode-laser">雷射光點</button>
+    <button class="tool-btn" id="btn-mode-pen">螢光筆</button>
+    <button class="tool-btn clear" id="btn-clear-pen">清除筆跡</button>
   </div>
   <div class="pad-wrap">
     <div class="touchpad" id="touchpad">
@@ -239,7 +238,7 @@ const REMOTE_HTML = `<!doctype html>
 
     ws.onopen = function() {
       dot.classList.add('connected');
-      stext.textContent = '🟢 已連線 (' + room + ')';
+      stext.textContent = '已連線 (' + room + ')';
     };
 
     ws.onmessage = function(e) {
@@ -262,12 +261,13 @@ const REMOTE_HTML = `<!doctype html>
 
     ws.onclose = function() {
       dot.classList.remove('connected');
-      stext.textContent = '🔴 斷線重試中...';
+      stext.textContent = '斷線重試中...';
       setTimeout(connect, 2000);
     };
 
     ws.onerror = function() { ws.close(); };
   }
+
 
   function sendCmd(obj) {
     if (typeof obj === 'string') obj = { type: obj };
