@@ -240,3 +240,32 @@ body.show-notes #notes {
 }
 #notes > div { display: none; }
 #notes > div.on { display: block; }
+
+/* Remote Controller Button & Modal */
+.premote-btn {
+  background: rgba(244, 181, 58, 0.15); color: var(--amber); border: 1px solid var(--amber);
+  border-radius: 6px; padding: 0.35rem 0.8rem; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; transition: background 0.15s, color 0.15s; margin-left: 1rem;
+}
+.premote-btn:hover { background: var(--amber); color: var(--ink); }
+
+.remote-modal {
+  position: fixed; inset: 0; z-index: 120; background: rgba(0, 0, 0, 0.85);
+  display: none; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.remote-modal.open { display: flex; }
+.remote-dialog {
+  background: #1a1712; border: 1px solid #38301f; border-radius: 12px;
+  padding: 2rem; max-width: 22rem; width: 100%; text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 0.9rem;
+}
+.remote-dialog h3 { font-size: 1.2rem; color: var(--amber); font-weight: 700; }
+.remote-dialog p { font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+.remote-qr { width: 180px; height: 180px; margin: 0.3rem auto; border-radius: 8px; background: #fff; padding: 6px; display: block; }
+.remote-pin { font-family: ui-monospace, monospace; font-size: 0.88rem; color: #f3efe6; background: #262118; padding: 0.4rem; border-radius: 6px; }
+.remote-close {
+  background: #2a2418; color: #f3efe6; border: 1px solid #38301f;
+  padding: 0.6rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; margin-top: 0.4rem;
+}
+.remote-close:hover { background: #3d3522; }
+

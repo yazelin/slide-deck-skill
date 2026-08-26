@@ -71,29 +71,46 @@
 </div>
 
 <!-- ==========================================================================
-     講者主控台 UI (按 'P' 開啟，支援雙視窗同步與時間節奏)
+     講者主控台 UI (按 'P' 開啟，支援雙視窗同步、手機遙控與時間節奏)
      ========================================================================== -->
 <div id="presenter">
   <nav id="pjump"></nav>
   <div class="pmain">
     <div class="phead">
       <span class="pnum" id="pnum"></span>
-      <span class="ptimer" id="ptimer">00:00</span>
+      <div style="display:flex;align-items:center;">
+        <span class="ptimer" id="ptimer">00:00</span>
+        <button class="premote-btn" id="premote-btn" type="button">📱 手機遙控</button>
+      </div>
     </div>
     <div class="ptitle" id="ptitle"></div>
     <div class="pnote" id="pnote"></div>
     <div class="pnext" id="pnext"></div>
-    <div class="pfoot">← → / Space 翻頁 · N 備註疊加 · P 講者主控台 · R 計時歸零 · 兩視窗自動同步</div>
+    <div class="pfoot">← → / Space 翻頁 · N 備註疊加 · P 講者主控台 · R 計時歸零 · 跨視窗與手機自動同步</div>
+  </div>
+</div>
+
+<!-- 手機遙控配對彈窗 -->
+<div class="remote-modal" id="remote-modal">
+  <div class="remote-dialog">
+    <h3>📱 手機無線遙控</h3>
+    <p>手機相機掃描下方 QR Code，免裝 App 即可在台上無線翻頁與即時查看講稿備忘：</p>
+    <img class="remote-qr" id="remote-qr" alt="QR Code">
+    <div class="remote-pin" id="remote-pin"></div>
+    <button class="remote-close" id="remote-close" type="button">關閉</button>
   </div>
 </div>
 
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
 
 <!-- ==========================================================================
-     跨平台控制核心 (支援 Windows / macOS / Linux / Mobile Touch)
+     跨平台控制核心 (支援 Windows / macOS / Linux / Mobile / WebSocket Remote)
      ========================================================================== -->
 <script>
 (function() {
+  // 公開中繼伺服器（可自架 Cloudflare Worker 替換）
+  var SYNC_SERVER = 'https://deck-sync.yazelinj303.workers.dev';
+
   var slides = [].slice.call(document.querySelectorAll('.slide'));
   var noteBlocks = [].slice.call(document.querySelectorAll('#notes > div'));
   var counter = document.getElementById('counter');
@@ -137,6 +154,9 @@
     [].forEach.call(pjump.children, function(d, i) { d.classList.toggle('on', i === cur); });
     var on = pjump.children[cur];
     if (on && document.body.classList.contains('present')) on.scrollIntoView({ block: 'nearest' });
+
+    // 推送狀態給手機遙控器
+    broadcastState();
   }
 
   function show(i, remote) {
@@ -148,13 +168,72 @@
     }
   }
 
-  // 跨視窗同步 (Dual-screen broadcast)
+  // 1. 同機雙螢幕跨視窗廣播 (localStorage fallback)
   addEventListener('storage', function(e) {
     if (e.key === KEY && e.newValue !== null) {
       var v = parseInt(e.newValue, 10);
       if (v !== cur) show(v, true);
     }
   });
+
+  // 2. 跨裝置 WebSocket 無線遙控連線
+  var roomId = sessionStorage.getItem('deck_room_id') || ('deck-' + Math.random().toString(36).slice(2, 8));
+  var roomPin = sessionStorage.getItem('deck_room_pin') || String(Math.floor(1000 + Math.random() * 9000));
+  sessionStorage.setItem('deck_room_id', roomId);
+  sessionStorage.setItem('deck_room_pin', roomPin);
+
+  var syncWs = null;
+  function initSyncSocket() {
+    if (!SYNC_SERVER) return;
+    var wsUrl = SYNC_SERVER.replace(/^http/, 'ws') + '/ws?room=' + encodeURIComponent(roomId) + '&role=host&pin=' + encodeURIComponent(roomPin);
+    try {
+      syncWs = new WebSocket(wsUrl);
+      syncWs.onopen = function() { broadcastState(); };
+      syncWs.onmessage = function(e) {
+        try {
+          var msg = JSON.parse(e.data);
+          if (msg.type === 'next') show(cur + 1);
+          else if (msg.type === 'prev') show(cur - 1);
+          else if (msg.type === 'jump' && typeof msg.page === 'number') show(msg.page);
+        } catch (err) {}
+      };
+      syncWs.onclose = function() { setTimeout(initSyncSocket, 3000); };
+    } catch (e) {}
+  }
+  initSyncSocket();
+
+  function broadcastState() {
+    if (syncWs && syncWs.readyState === WebSocket.OPEN) {
+      syncWs.send(JSON.stringify({
+        type: 'state',
+        page: cur,
+        total: slides.length,
+        title: titleOf(slides[cur]),
+        note: noteBlocks[cur] ? noteBlocks[cur].innerHTML : '',
+        timer: ptimer ? ptimer.textContent : '00:00'
+      }));
+    }
+  }
+
+  // 手機遙控 QR Code 與彈窗
+  var remoteModal = document.getElementById('remote-modal');
+  var premoteBtn = document.getElementById('premote-btn');
+  var remoteClose = document.getElementById('remote-close');
+  var remoteQr = document.getElementById('remote-qr');
+  var remotePinEl = document.getElementById('remote-pin');
+
+  if (premoteBtn) {
+    premoteBtn.onclick = function() {
+      var remoteUrl = SYNC_SERVER + '/remote?room=' + encodeURIComponent(roomId) + '&pin=' + encodeURIComponent(roomPin);
+      remoteQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=' + encodeURIComponent(remoteUrl);
+      remotePinEl.textContent = '房間: ' + roomId + ' · 密碼: ' + roomPin;
+      remoteModal.classList.add('open');
+    };
+  }
+  if (remoteClose) remoteClose.onclick = function() { remoteModal.classList.remove('open'); };
+  if (remoteModal) {
+    remoteModal.onclick = function(e) { if (e.target === remoteModal) remoteModal.classList.remove('open'); };
+  }
 
   // 跨平台鍵盤控制
   addEventListener('keydown', function(e) {
@@ -178,7 +257,7 @@
   addEventListener('touchend', function(e) {
     if (tx === null) return;
     var dx = e.changedTouches[0].clientX - tx;
-    if (Math.abs(dx) > 50 && !e.target.closest('video, iframe, #notes, .lightbox')) {
+    if (Math.abs(dx) > 50 && !e.target.closest('video, iframe, #notes, .lightbox, .remote-modal')) {
       show(cur + (dx < 0 ? 1 : -1));
     }
     tx = null;
@@ -227,7 +306,12 @@
   });
   if (lb) {
     lb.onclick = function() { lb.classList.remove('open'); };
-    addEventListener('keydown', function(e) { if (e.key === 'Escape') lb.classList.remove('open'); });
+    addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        lb.classList.remove('open');
+        if (remoteModal) remoteModal.classList.remove('open');
+      }
+    });
   }
 
   render();

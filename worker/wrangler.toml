@@ -1,0 +1,14 @@
+name = "deck-sync"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "986aa90dfb437b247dcb8e1819c9b525"
+
+[durable_objects]
+bindings = [
+  { name = "ROOMS", class_name = "DeckRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DeckRoom"]
