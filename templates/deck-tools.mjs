@@ -15,16 +15,21 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 // 動態解析 Playwright（優先載入專案或全域模組）
 async function loadPlaywright() {
-  const candidates = [
-    'playwright'
-  ]
-  for (const c of candidates) {
+  const tries = ['playwright']
+  // 專案本地找不到就問 npm 全域安裝位置(跨機器可攜,不寫死任何人的家目錄)
+  try {
+    const { execFileSync } = await import('node:child_process')
+    const root = execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['root', '-g'],
+                              { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    if (root) tries.push(pathToFileURL(join(root, 'playwright', 'index.js')).href)
+  } catch (e) {}
+  for (const c of tries) {
     try {
       const mod = await import(c)
       return mod.default || mod
     } catch (e) {}
   }
-  throw new Error('找不到 playwright 模組。請先執行 npm install playwright 或 npx playwright install')
+  throw new Error('找不到 playwright 模組。請先執行 npm install playwright 或 npm install -g playwright')
 }
 
 // 跨平台偵測 Chrome 執行路徑

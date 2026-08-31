@@ -30,6 +30,27 @@ try {
 for (const f of ['deck.html', 'deck.css', 'deck-tools.mjs', 'handout.html', 'handout-to-pdf.mjs', 'qrcode.min.js']) {
   check(existsSync(join(out, f)), `init 產出 ${f}`)
 }
+// 2b. deck-tools 要找得到 playwright(裝在專案或全域都算)。裝了才驗,沒裝就跳過。
+{
+  let hasPw = false
+  try { execFileSync(node, ['-e', "import('playwright')"], { stdio: 'pipe' }); hasPw = true } catch {}
+  if (!hasPw) {
+    try {
+      const groot = execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['root', '-g'],
+                                 { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+      hasPw = existsSync(join(groot, 'playwright', 'index.js'))
+    } catch {}
+  }
+  if (!hasPw) console.log('skip 本機沒裝 playwright,跳過 deck-tools 驗收')
+  else {
+    let ok = true
+    try {
+      execFileSync(node, [join(out, 'deck-tools.mjs'), join(out, 'deck.html'), 'verify'], { stdio: 'pipe', timeout: 120000 })
+    } catch (e) { ok = false }
+    check(ok, 'deck-tools verify 跑得起來(找得到 playwright 與瀏覽器)')
+  }
+}
+
 rmSync(tmp, { recursive: true, force: true })
 
 // 3. 離線 serve:遙控頁真的送得出來,而且投影機端與手機端真的互通
