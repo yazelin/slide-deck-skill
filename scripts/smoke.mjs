@@ -4,7 +4,7 @@
 //       init/serve/verify 全死了三天沒人發現 —— 因為只驗簡報,沒驗工具自己。
 //   node scripts/smoke.mjs
 import { execFileSync, spawn } from 'node:child_process'
-import { mkdtempSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, existsSync, rmSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -19,6 +19,13 @@ for (const f of ['deck.mjs', 'templates/deck-tools.mjs', 'templates/handout-to-p
   let ok = true
   try { execFileSync(node, ['--check', join(root, f)], { stdio: 'pipe' }) } catch { ok = false }
   check(ok, `${f} 語法`)
+}
+
+// 1b. 同一顆按鈕可能同時掛 data-load 與 data-max,用 btn.onclick 會互相覆蓋(後者贏),
+//     結果是按了只切滿版、iframe 從沒建出來。模板一律用 addEventListener。
+{
+  const html = readFileSync(join(root, 'templates', 'deck.html'), 'utf-8')
+  check(!/btn\.onclick\s*=/.test(html), 'deck.html 沒有用 btn.onclick(會覆蓋同顆按鈕的另一個處理器)')
 }
 
 // 2. init 真的要產得出骨架

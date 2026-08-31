@@ -373,7 +373,7 @@
 
   // 延遲載入 Iframe 與 Video
   document.querySelectorAll('.fsbtn[data-load]').forEach(function(btn) {
-    btn.onclick = function() {
+    btn.addEventListener('click', function() {
       var slot = document.getElementById(btn.dataset.load + '-slot');
       if (!slot || slot.tagName === 'IFRAME') return;
       var f = document.createElement('iframe');
@@ -381,13 +381,13 @@
       f.setAttribute('loading', 'lazy');
       slot.replaceWith(f);
       btn.textContent = '已載入';
-    };
+    });
   });
 
 
   // 備援影片:現場網路或站台出狀況時,同一個位置直接換成預錄影片
   document.querySelectorAll('.fsbtn[data-video]').forEach(function(btn) {
-    btn.onclick = function() {
+    btn.addEventListener('click', function() {
       var slot = document.getElementById(btn.dataset.video + '-slot');
       if (!slot || slot.tagName === 'VIDEO') return;
       var v = document.createElement('video');
@@ -397,17 +397,17 @@
       slot.replaceWith(v);
       v.play().catch(function() {});
       btn.textContent = '播放中';
-    };
+    });
   });
 
   document.querySelectorAll('.fsbtn[data-max]').forEach(function(btn) {
-    btn.onclick = function() {
+    btn.addEventListener('click', function() {
       var w = document.getElementById(btn.dataset.max);
       if (!w) return;
       w.classList.toggle('maxi');
       document.body.classList.toggle('has-maxi', w.classList.contains('maxi'));
       btn.textContent = w.classList.contains('maxi') ? '還原' : '滿版';
-    };
+    });
   });
 
   // 圖片燈箱
