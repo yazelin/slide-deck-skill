@@ -230,6 +230,18 @@ body.present #presenter {
 .pnote b { color: var(--amber); }
 .pnext { font-size: .95rem; color: #8c846f; border-top: 1px solid #2a2418; padding-top: .8rem; }
 .pnext b { color: #d4ccb8; }
+
+/* 開播前檢查:主控台常駐,翻到哪一頁都看得到,免得忘了啟動要 demo 的服務 */
+.pflight {
+  margin: .6rem 0 .4rem; padding: .55rem .8rem; border-radius: 6px;
+  background: rgba(34, 211, 238, .08); border: 1px solid rgba(34, 211, 238, .28);
+  font-size: .78rem; line-height: 1.75; color: var(--amber-soft);
+}
+.pflight b { color: var(--amber); letter-spacing: .06em; }
+.pflight code {
+  background: rgba(14, 14, 16, .75); padding: .05rem .35rem; border-radius: 3px;
+  font-family: "JetBrains Mono", monospace; color: var(--cream);
+}
 .pfoot { font-size: .75rem; color: #6e6754; text-align: center; }
 
 /* In-slide Notes overlay (Press 'N') */
