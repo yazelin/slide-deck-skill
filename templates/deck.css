@@ -279,5 +279,6 @@ body.show-notes #notes {
   pointer-events: none; z-index: 9999; display: block;
 }
 
-
-
+/* 備援影片按鈕:排在「載入」右邊,顏色不同以免現場按錯 */
+.fsbtn.alt2 { right: auto; left: 0.7rem; background: rgba(110, 110, 114, .25); }
+.fsbtn.alt2:hover { background: var(--cyan); color: var(--ink); }

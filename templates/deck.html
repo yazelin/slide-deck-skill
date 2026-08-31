@@ -384,6 +384,22 @@
     };
   });
 
+
+  // 備援影片:現場網路或站台出狀況時,同一個位置直接換成預錄影片
+  document.querySelectorAll('.fsbtn[data-video]').forEach(function(btn) {
+    btn.onclick = function() {
+      var slot = document.getElementById(btn.dataset.video + '-slot');
+      if (!slot || slot.tagName === 'VIDEO') return;
+      var v = document.createElement('video');
+      v.className = 'livebox'; v.id = slot.id; v.src = slot.dataset.video;
+      v.controls = true; v.muted = true; v.playsInline = true;
+      v.setAttribute('preload', 'metadata');
+      slot.replaceWith(v);
+      v.play().catch(function() {});
+      btn.textContent = '播放中';
+    };
+  });
+
   document.querySelectorAll('.fsbtn[data-max]').forEach(function(btn) {
     btn.onclick = function() {
       var w = document.getElementById(btn.dataset.max);
