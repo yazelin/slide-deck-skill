@@ -7,9 +7,17 @@
   "scripts": {
     "init": "node deck.mjs init",
     "verify": "node deck.mjs verify",
-    "export": "node deck.mjs export"
+    "export": "node deck.mjs export",
+    "test": "node scripts/smoke.mjs"
   },
-  "keywords": ["slides", "presentation", "html-deck", "presenter-mode", "playwright", "pdf-export"],
+  "keywords": [
+    "slides",
+    "presentation",
+    "html-deck",
+    "presenter-mode",
+    "playwright",
+    "pdf-export"
+  ],
   "author": "林亞澤 (Yaze Lin)",
   "license": "MIT",
   "devDependencies": {

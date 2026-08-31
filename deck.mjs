@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, statSync, createReadStream } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
+import { createHash } from 'node:crypto'
 import { networkInterfaces } from 'node:os'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -92,7 +93,7 @@ if (cmd === 'init') {
 快速開始:
   cd ${targetDir}
   # 有外網或雙螢幕：直接用瀏覽器開 deck.html 播放
-  # 沒外網純同區網：node /home/ct/slide-deck-skill/deck.mjs serve 8080 .
+  # 沒外網純同區網：node ${join(here, 'deck.mjs')} serve 8080 .
 `)
   process.exit(0)
 }
@@ -102,8 +103,105 @@ if (cmd === 'serve') {
   const serveDir = resolve(process.cwd(), options[0] || (isNaN(parseInt(targetDir, 10)) ? targetDir : '.'))
   const lanIp = getLanIp()
 
-  // 房間與 SSE 連線管理
+  // 遙控面板頁面直接從 worker 原始碼抽出來,線上與離線永遠是同一份 UI。
+  // ponytail: 字串切割而非 build step。哪天 worker 改成 import .html,這裡換成 readFileSync 即可。
+  function remoteHtml() {
+    const MARK = 'const REMOTE_HTML = `'
+    try {
+      const src = readFileSync(join(here, 'worker', 'src', 'index.ts'), 'utf-8')
+      const from = src.indexOf(MARK)
+      if (from < 0) return null
+      const body = src.slice(from + MARK.length)
+      const stop = body.indexOf('`')
+      if (stop < 0 || stop < 200) return null
+      return body.slice(0, stop)
+    } catch (e) { return null }
+  }
+
+  // 房間:跟 worker 的 Durable Object 同語意 —— 存最後狀態 + 廣播給同房其他連線
   const rooms = new Map()
+  const roomOf = id => {
+    if (!rooms.has(id)) rooms.set(id, { pin: null, lastState: null, sockets: new Set() })
+    return rooms.get(id)
+  }
+
+  const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+
+  function wsSend(sock, text) {
+    const payload = Buffer.from(text, 'utf-8')
+    const n = payload.length
+    let head
+    if (n < 126) head = Buffer.from([0x81, n])
+    else if (n < 65536) { head = Buffer.alloc(4); head[0] = 0x81; head[1] = 126; head.writeUInt16BE(n, 2) }
+    else { head = Buffer.alloc(10); head[0] = 0x81; head[1] = 127; head.writeBigUInt64BE(BigInt(n), 2) }
+    try { sock.write(Buffer.concat([head, payload])) } catch (e) {}
+  }
+
+  function broadcast(room, from, text) {
+    try { const d = JSON.parse(text); if (d && d.type === 'state') room.lastState = d } catch (e) {}
+    for (const s of room.sockets) if (s !== from) wsSend(s, text)
+  }
+
+  function handleUpgrade(req, sock) {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+    const key = req.headers['sec-websocket-key']
+    const roomId = url.searchParams.get('room')
+    if (url.pathname !== '/ws' || !key || !roomId) {
+      try { sock.write('HTTP/1.1 400 Bad Request\r\n\r\n') } catch (e) {}
+      return sock.destroy()
+    }
+    const room = roomOf(roomId)
+    const pin = url.searchParams.get('pin')
+    if (!room.pin && pin) room.pin = pin
+    else if (room.pin && pin && room.pin !== pin) {
+      try { sock.write('HTTP/1.1 403 Forbidden\r\n\r\n') } catch (e) {}
+      return sock.destroy()
+    }
+
+    const accept = createHash('sha1').update(key + WS_GUID).digest('base64')
+    sock.write('HTTP/1.1 101 Switching Protocols\r\n' +
+               'Upgrade: websocket\r\nConnection: Upgrade\r\n' +
+               `Sec-WebSocket-Accept: ${accept}\r\n\r\n`)
+    sock.setNoDelay(true)
+    room.sockets.add(sock)
+    if (room.lastState) wsSend(sock, JSON.stringify(room.lastState))
+
+    const drop = () => { room.sockets.delete(sock); try { sock.destroy() } catch (e) {} }
+    sock.on('error', drop)
+    sock.on('close', () => room.sockets.delete(sock))
+
+    let buf = Buffer.alloc(0)
+    let frag = Buffer.alloc(0)
+    sock.on('data', chunk => {
+      buf = Buffer.concat([buf, chunk])
+      for (;;) {
+        if (buf.length < 2) return
+        const b0 = buf[0], b1 = buf[1]
+        const opcode = b0 & 0x0f
+        const masked = (b1 & 0x80) !== 0
+        let len = b1 & 0x7f
+        let off = 2
+        if (len === 126) { if (buf.length < 4) return; len = buf.readUInt16BE(2); off = 4 }
+        else if (len === 127) { if (buf.length < 10) return; len = Number(buf.readBigUInt64BE(2)); off = 10 }
+        const need = off + (masked ? 4 : 0) + len
+        if (buf.length < need) return
+        let payload = Buffer.from(buf.subarray(off + (masked ? 4 : 0), need))
+        if (masked) {
+          const mask = buf.subarray(off, off + 4)
+          for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4]
+        }
+        buf = buf.subarray(need)
+        if (opcode === 0x8) return drop()
+        if (opcode === 0x9) { try { sock.write(Buffer.concat([Buffer.from([0x8a, payload.length]), payload])) } catch (e) {}; continue }
+        if (opcode === 0xa) continue
+        frag = Buffer.concat([frag, payload])
+        if (!(b0 & 0x80)) continue   // FIN=0,訊息還沒完
+        const text = frag.toString('utf-8')
+        frag = Buffer.alloc(0)
+        broadcast(room, sock, text)
+      }
+    })
+  }
 
   const mimeTypes = {
     '.html': 'text/html; charset=utf-8',
@@ -122,55 +220,29 @@ if (cmd === 'serve') {
   const server = createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
 
-    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', '*')
     if (req.method === 'OPTIONS') return res.writeHead(204).end()
 
-    // 離線 SSE 事件流 /events?room=...
-    if (url.pathname === '/events') {
-      const room = url.searchParams.get('room') || 'default'
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-      })
-      res.write(': connected\n\n')
-
-      if (!rooms.has(room)) rooms.set(room, new Set())
-      const clients = rooms.get(room)
-      clients.add(res)
-
-      req.on('close', () => {
-        clients.delete(res)
-        if (clients.size === 0) rooms.delete(room)
-      })
-      return
+    // 手機遙控面板(跟 worker 同一份 HTML)
+    if (url.pathname === '/remote' || url.pathname === '/remote.html') {
+      const html = remoteHtml()
+      if (!html) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+        return res.end('抽不到遙控頁:找不到 worker/src/index.ts 裡的 REMOTE_HTML')
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      return res.end(html)
     }
 
-    // 離線指令發送 /api/send
-    if (url.pathname === '/api/send' && req.method === 'POST') {
-      let body = ''
-      req.on('data', chunk => { body += chunk })
-      req.on('end', () => {
-        try {
-          const data = JSON.parse(body)
-          const room = data.room || url.searchParams.get('room') || 'default'
-          const clients = rooms.get(room)
-          if (clients) {
-            const payload = `data: ${JSON.stringify(data)}\n\n`
-            for (const client of clients) {
-              try { client.write(payload) } catch (e) {}
-            }
-          }
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({ ok: true }))
-        } catch (e) {
-          res.writeHead(400).end('Bad Request')
-        }
-      })
-      return
+    // 房間狀態(遙控頁連線前會問)
+    if (url.pathname === '/state') {
+      const id = url.searchParams.get('room')
+      if (!id) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end('{"error":"missing_room"}') }
+      const r = roomOf(id)
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ active: true, has_pin: !!r.pin, last_state: r.lastState }))
     }
 
     // 靜態檔案服務
@@ -189,20 +261,20 @@ if (cmd === 'serve') {
     }
   })
 
+  server.on('upgrade', handleUpgrade)
+
   server.listen(port, '0.0.0.0', () => {
     console.log(`
 離線區域網路簡報伺服器已啟動
 --------------------------------------------------
-電腦投影／主控台： http://localhost:${port}/deck.html
-同區網手機遙控：  http://${lanIp}:${port}/remote?room=demo
+簡報請用這個網址開： http://${lanIp}:${port}/deck.html
+（用 localhost 開的話,手機遙控 QR 會指到 localhost,手機連不到）
+手機遙控：簡報按 P 開主控台 → 手機遙控 → 手機掃 QR
 --------------------------------------------------
-（手機連同一個 Wi-Fi 或連電腦開的熱點即可連線遙控）
+手機連同一個 Wi-Fi,或連這台電腦開的熱點即可。Ctrl+C 結束。
 `)
   })
-  return
-}
-
-if (cmd === 'verify' || cmd === 'export' || cmd === 'thumbs' || cmd === 'pdf') {
+} else if (cmd === 'verify' || cmd === 'export' || cmd === 'thumbs' || cmd === 'pdf') {
   const target = targetDir || 'deck-tools.mjs'
   const scriptPath = target.endsWith('.mjs') ? resolve(process.cwd(), target) : join(templatesDir, 'deck-tools.mjs')
   const child = spawn(process.execPath, [scriptPath, ...(targetDir ? [targetDir] : []), cmd === 'export' ? 'all' : cmd], {

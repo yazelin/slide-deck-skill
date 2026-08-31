@@ -13,7 +13,7 @@ description: Use when the user wants to create, edit, verify, or export professi
 
 ```bash
 # 1. 建立新簡報專案骨架
-node /home/ct/slide-deck-skill/deck.mjs init <專案路徑> --title "主題名稱"
+node <skill 根目錄>/deck.mjs init <專案路徑> --title "主題名稱"
 
 # 2. 進入專案目錄
 cd <專案路徑>

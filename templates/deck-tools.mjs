@@ -16,8 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 // 動態解析 Playwright（優先載入專案或全域模組）
 async function loadPlaywright() {
   const candidates = [
-    'playwright',
-    '/home/ct/.nvm/versions/node/v22.17.1/lib/node_modules/playwright/index.js'
+    'playwright'
   ]
   for (const c of candidates) {
     try {
