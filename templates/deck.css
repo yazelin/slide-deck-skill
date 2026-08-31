@@ -242,6 +242,20 @@ body.present #presenter {
   background: rgba(14, 14, 16, .75); padding: .05rem .35rem; border-radius: 3px;
   font-family: "JetBrains Mono", monospace; color: var(--cream);
 }
+
+/* 常見問答:跟開播前檢查一樣常駐,現場被問到不用臨時想 */
+.pfaq {
+  margin: .4rem 0; padding: .5rem .8rem; border-radius: 6px;
+  background: rgba(251, 146, 60, .07); border: 1px solid rgba(251, 146, 60, .25);
+  font-size: .74rem; line-height: 1.7; color: var(--muted);
+}
+.pfaq > b { display: block; color: var(--cyan); letter-spacing: .06em; margin-bottom: .2rem; }
+.pfaq span { display: block; }
+.pfaq span b { color: var(--cream); }
+.pfaq code {
+  background: rgba(14, 14, 16, .75); padding: .05rem .3rem; border-radius: 3px;
+  font-family: "JetBrains Mono", monospace; color: var(--amber-soft);
+}
 .pfoot { font-size: .75rem; color: #6e6754; text-align: center; }
 
 /* In-slide Notes overlay (Press 'N') */
