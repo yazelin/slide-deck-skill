@@ -182,6 +182,19 @@ img.shot:hover { transform: scale(1.02); border-color: var(--amber); }
   background: var(--surface);
 }
 .livebox { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+
+/* 內嵌位置的預覽圖:還沒按按鈕時就看得到等一下會出現什麼,匯出的 PDF 那幾頁也不會是空白框 */
+.livewrap > .poster {
+  position: relative; width: 100%; height: 100%;
+  background-size: cover; background-position: top center;
+  filter: grayscale(.2) brightness(.58);
+}
+.livewrap > .poster::after {
+  content: attr(data-hint);
+  position: absolute; left: 0; right: 0; bottom: 1.1rem; text-align: center;
+  color: var(--amber); font-size: .85rem; letter-spacing: .08em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .95);
+}
 .fsbtn {
   position: absolute; top: .6rem; right: .6rem; z-index: 30;
   background: var(--ink); color: var(--amber); border: 1px solid var(--amber);
