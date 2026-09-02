@@ -461,14 +461,19 @@
       new ResizeObserver(function() {
         prevW = curW; prevH = curH;
         curW = w.offsetWidth; curH = w.offsetHeight;
-        if (!spacer && prevW && !w.classList.contains('maxi')) popOut(prevW, prevH);
+        // 進出滿版也會改尺寸,那不是使用者在拉大小,不可以浮起來
+        if (!spacer && prevW && !w._noPop && !w.classList.contains('maxi')) popOut(prevW, prevH);
       }).observe(w);
     }
     bar.querySelector('.home').addEventListener('click', putBack);
 
     // 滿版前先放回正常流,還原後不自動浮起來(位置乾淨)
-    w._winSave = function() { putBack(); };
+    // 進出滿版:先放回正常流,並在前後各壓住一拍 ResizeObserver,
+    // 不然退出滿版的尺寸變化會被當成使用者在拉大小,框會留在浮動狀態,
+    // 座標是當下視窗的,換頁再回來就跑掉了(第 28/29 頁最明顯)。
+    w._winSave = function() { w._noPop = true; putBack(); };
     w._winRestore = function() {};
+    w._winDone = function() { setTimeout(function() { w._noPop = false; prevW = 0; prevH = 0; curW = 0; curH = 0; }, 250); };
   });
 
   document.querySelectorAll('.fsbtn[data-load]').forEach(function(btn) {
@@ -505,9 +510,10 @@
       var w = document.getElementById(btn.dataset.max);
       if (!w) return;
       var goingMax = !w.classList.contains('maxi');
-      if (goingMax && w._winSave) w._winSave();
+      if (w._winSave) { w._noPop = true; if (goingMax) w._winSave(); }
       w.classList.toggle('maxi');
       if (!goingMax && w._winRestore) w._winRestore();
+      if (w._winDone) w._winDone();
       document.body.classList.toggle('has-maxi', w.classList.contains('maxi'));
       btn.textContent = w.classList.contains('maxi') ? '還原' : '滿版';
     });
