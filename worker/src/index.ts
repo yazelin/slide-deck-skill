@@ -288,7 +288,7 @@ const REMOTE_HTML = `<!doctype html>
       var thumbSrc = s.thumb || '';
       card.innerHTML =
         '<div class="jump-thumb-wrap">' +
-          (thumbSrc ? '<img class="jump-thumb-img" src="' + thumbSrc + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" alt="">' : '') +
+          (thumbSrc ? '<img class="jump-thumb-img" src="' + thumbSrc + '" data-fallback="1" alt="">' : '') +
           '<div class="jump-thumb-fallback" style="' + (thumbSrc ? 'display:none;' : '') + '">' +
             '<span style="font-size:1.15rem;font-weight:800;color:var(--amber);">' + (i + 1) + '</span>' +
             '<span style="font-size:0.75rem;color:#d4ccb8;margin-top:2px;">' + (s.title || ('投影片 ' + (i + 1))) + '</span>' +
@@ -302,6 +302,11 @@ const REMOTE_HTML = `<!doctype html>
         vibrate(30);
         sendCmd({ type: 'jump', page: i });
       };
+      var fb = card.querySelector('img[data-fallback]');
+      if (fb) fb.addEventListener('error', function () {
+        this.style.display = 'none';
+        if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+      });
       paneJump.appendChild(card);
     });
   }
