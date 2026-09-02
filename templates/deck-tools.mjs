@@ -9,7 +9,7 @@
 
 import { dirname, join, resolve, basename, extname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -187,14 +187,21 @@ if (command === 'all' || command === 'thumbs') {
   const thumbDir = join(TARGET_DIR, 'assets/thumbs')
   mkdirSync(thumbDir, { recursive: true })
   
+  // template 的主控台縮圖抓 t<N>.webp。Playwright 的 screenshot() 只吐 png/jpeg,
+  // 不能直接存 webp;用 canvas.toDataURL('image/webp') 轉一次再寫檔,副檔名才對得上。
+  // 舊版寫 .webp 但 Playwright 拋錯後 fallback 成 .jpg,結果 template 全 404、左欄空白。
   const tp = await ctx.newPage()
   for (let i = 0; i < n; i++) {
-    await tp.setContent(`<img src="data:image/jpeg;base64,${shots[i].toString('base64')}" style="width:320px;display:block">`)
-    const el = await tp.locator('img')
-    const outPath = join(thumbDir, `t${i + 1}.webp`)
-    await el.screenshot({ path: outPath }).catch(async () => {
-      await el.screenshot({ path: join(thumbDir, `t${i + 1}.jpg`), type: 'jpeg' })
-    })
+    const b64 = await tp.evaluate(async (jpegB64) => {
+      const img = new Image()
+      img.src = 'data:image/jpeg;base64,' + jpegB64
+      await img.decode()
+      const c = document.createElement('canvas')
+      c.width = 320; c.height = Math.round(320 * img.naturalHeight / img.naturalWidth)
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      return c.toDataURL('image/webp', 0.88).split(',')[1]
+    }, shots[i].toString('base64'))
+    writeFileSync(join(thumbDir, `t${i + 1}.webp`), Buffer.from(b64, 'base64'))
   }
   await tp.close()
   console.log(`縮圖: ${n} 張已生成 -> assets/thumbs/`)
@@ -219,7 +226,6 @@ if (command === 'all' || command === 'pdf') {
     printBackground: true,
     pageRanges: `1-${n}`
   })
-  const { writeFileSync } = await import('node:fs')
   writeFileSync(outPdfPath, pdfBuffer)
   console.log(`PDF: 16:9 投影片 PDF 匯出完成 -> ${outPdfPath}`)
 }
