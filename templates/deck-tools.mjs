@@ -114,6 +114,7 @@ const ctx = await b.newContext({
 
 const p = await ctx.newPage()
 const errs = []
+let tight = 0
 p.on('pageerror', e => errs.push(String(e)))
 
 await p.goto(DECK_URL, { waitUntil: 'load' })
@@ -155,18 +156,34 @@ for (let i = 1; i <= n; i++) {
     process.exit(1)
   }
 
-  // 檢查排版是否溢出 (Overflow check)
+  // 檢查排版是否溢出。
+  // scrollHeight > clientHeight 抓不到這一種:slide 是置中的 flex,內容變多不會捲動,
+  // 而是整塊往上頂,被頁首那條蓋住。所以另外量內容離頁首/底部還剩多少。
+  // 2026-09-02 就是這樣漏掉一頁——目測看得出來,機器說通過。
   const over = await p.evaluate(() => {
     const s = document.querySelector('.slide.active')
-    if (!s) return { h: false, w: false }
+    if (!s) return null
+    const bar = document.querySelector('.bar')
+    const barBottom = bar ? bar.getBoundingClientRect().bottom : 0
+    const kids = [...s.children].filter(e => e.getBoundingClientRect().height > 0)
+    if (!kids.length) return null
+    const boxes = kids.map(e => e.getBoundingClientRect())
     return {
-      h: s.scrollHeight > s.clientHeight + 4,
-      w: s.scrollWidth > s.clientWidth + 4
+      scrollH: s.scrollHeight > s.clientHeight + 4,
+      scrollW: s.scrollWidth > s.clientWidth + 4,
+      頂部留白: Math.round(Math.min(...boxes.map(r => r.top)) - barBottom),
+      底部留白: Math.round(window.innerHeight - Math.max(...boxes.map(r => r.bottom)))
     }
   })
 
-  if (over.h || over.w) {
-    console.warn(`警告: 第 ${i} 頁內容超出可視範圍 (溢出: ${JSON.stringify(over)})`)
+  if (over) {
+    if (over.scrollH || over.scrollW) {
+      console.warn(`警告: 第 ${i} 頁內容超出可視範圍`)
+    }
+    if (over.頂部留白 < 16 || over.底部留白 < 16) {
+      console.warn(`警告: 第 ${i} 頁內容快撞到邊了 (離頁首 ${over.頂部留白}px, 離底部 ${over.底部留白}px)。內容要減量`)
+      tight++
+    }
   }
 
   if (command !== 'verify') {
@@ -180,7 +197,9 @@ if (errs.length > 0) {
   process.exit(1)
 }
 
-console.log('OK: 逐頁結構與翻頁驗收通過。')
+console.log(tight > 0
+  ? `OK: 逐頁結構與翻頁驗收通過(但有 ${tight} 頁內容快撞到邊,見上面的警告)。`
+  : 'OK: 逐頁結構與翻頁驗收通過。')
 
 // 產出縮圖
 if (command === 'all' || command === 'thumbs') {
