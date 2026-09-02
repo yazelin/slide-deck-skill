@@ -191,6 +191,7 @@ if (command === 'all' || command === 'thumbs') {
   // 不能直接存 webp;用 canvas.toDataURL('image/webp') 轉一次再寫檔,副檔名才對得上。
   // 舊版寫 .webp 但 Playwright 拋錯後 fallback 成 .jpg,結果 template 全 404、左欄空白。
   const tp = await ctx.newPage()
+  const thumbUris = []   // 給手機遙控與 file:// host 用的內嵌 data URI(160x90)
   for (let i = 0; i < n; i++) {
     const b64 = await tp.evaluate(async (jpegB64) => {
       const img = new Image()
@@ -202,9 +203,22 @@ if (command === 'all' || command === 'thumbs') {
       return c.toDataURL('image/webp', 0.88).split(',')[1]
     }, shots[i].toString('base64'))
     writeFileSync(join(thumbDir, `t${i + 1}.webp`), Buffer.from(b64, 'base64'))
+    // 另存一份 160x90 的小 data URI(手機遙控觸控板底圖 + file:// 開啟時 host 讀不到本機檔的後備)
+    const small = await tp.evaluate(async (jpegB64) => {
+      const img = new Image()
+      img.src = 'data:image/jpeg;base64,' + jpegB64
+      await img.decode()
+      const c = document.createElement('canvas')
+      c.width = 160; c.height = 90
+      c.getContext('2d').drawImage(img, 0, 0, 160, 90)
+      return c.toDataURL('image/webp', 0.7)
+    }, shots[i].toString('base64'))
+    thumbUris.push(small)
   }
   await tp.close()
-  console.log(`縮圖: ${n} 張已生成 -> assets/thumbs/`)
+  writeFileSync(join(thumbDir, '..', 'thumbs.js'),
+    'window.DECK_THUMBS = ' + JSON.stringify(thumbUris) + ';\n')
+  console.log(`縮圖: ${n} 張已生成 -> assets/thumbs/ (含 assets/thumbs.js 內嵌 data URI)`)
 }
 
 // 匯出 16:9 PDF

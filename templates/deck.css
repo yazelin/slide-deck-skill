@@ -215,7 +215,7 @@ body.present { overflow: auto; background: #0b0a08; }
 body.present .slide { display: none !important; }
 body.present .bar { display: none !important; }
 body.present #presenter {
-  display: grid; grid-template-columns: 240px 1fr; height: 100vh;
+  display: grid; grid-template-columns: 300px 1fr; height: 100vh;
   color: #f3efe6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 #pjump {
@@ -223,10 +223,11 @@ body.present #presenter {
   overflow-y: auto; padding: .6rem; display: flex; flex-direction: column; gap: .4rem;
 }
 .pj {
-  padding: .5rem .6rem; border-radius: 6px; font-size: .78rem; color: #a69e8b;
-  cursor: pointer; display: flex; align-items: center; gap: .6rem; border: 1px solid transparent;
+  padding: .5rem; border-radius: 8px; font-size: .82rem; color: #a69e8b;
+  cursor: pointer; display: block; border: 1px solid transparent;
 }
-.pj img { width: 44px; height: 25px; object-fit: cover; border-radius: 3px; background: #000; flex-shrink: 0; }
+.pj img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover;
+  border-radius: 5px; background: #000; margin-bottom: .35rem; pointer-events: none; }
 .pj:hover { background: #1e1a13; color: #fff; }
 .pj.on { background: #2f2716; color: var(--amber); border-color: var(--amber); font-weight: 700; }
 

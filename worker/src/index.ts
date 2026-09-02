@@ -96,10 +96,13 @@ const REMOTE_HTML = `<!doctype html>
   }
   .touchpad {
     width: 100%; aspect-ratio: 16 / 9; max-height: 52vh; background: #16130e;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
     border: 2px dashed var(--amber); border-radius: 12px; position: relative;
     touch-action: none; display: flex; align-items: center; justify-content: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8); overflow: hidden;
   }
+  .touchpad.has-bg { border-style: solid; }
+  .touchpad.has-bg .pad-hint { background: rgba(0,0,0,0.55); padding: .3rem .6rem; border-radius: 6px; }
   .pad-hint { font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; line-height: 1.5; }
   .touch-dot {
     position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #ff4444;
@@ -254,6 +257,18 @@ const REMOTE_HTML = `<!doctype html>
           if (data.slides && Array.isArray(data.slides)) {
             slideList = data.slides;
             renderJumpList();
+          }
+          // 觸控板底圖換成當前頁縮圖,雷射點/筆跡才看得出指到畫面哪裡
+          var curThumb = slideList[curPage - 1] && slideList[curPage - 1].thumb;
+          if (touchpad) {
+            if (curThumb) {
+              touchpad.style.backgroundImage = 'url(' + curThumb + ')';
+              touchpad.classList.add('has-bg');
+              if (padHint) padHint.textContent = '在畫面上滑動,電腦與直播同步跟隨';
+            } else {
+              touchpad.style.backgroundImage = '';
+              touchpad.classList.remove('has-bg');
+            }
           }
         }
       } catch(err) {}

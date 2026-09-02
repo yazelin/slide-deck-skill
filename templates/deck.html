@@ -116,6 +116,7 @@
      跨平台控制核心 (支援 Windows / macOS / Linux / Mobile / 100% 離線 SVG QR)
      ========================================================================== -->
 <script src="qrcode.min.js"></script>
+<script src="assets/thumbs.js"></script>
 <script>
 (function() {
   // 自動偵測中繼伺服器（本地 Node.js 伺服器或 Cloudflare Worker）
@@ -232,6 +233,13 @@
       syncWs.onclose = function() { setTimeout(initSyncSocket, 3000); };
     } catch (e) {}
   }
+  // 手機遙控的跳頁清單與觸控板要顯示縮圖,但手機在 Worker 網域讀不到 host 本機檔,
+  // 所以 host 先把每頁縮圖讀成 data URI 隨 state 廣播(160x90 webp,整份約數十 KB)。
+  // 手機遙控要顯示縮圖,但手機在 Worker 網域讀不到 host 本機檔,而 file:// 開的 host
+  // 又不能用 canvas.toDataURL(tainted)或 fetch(CORS)即時轉。所以 deck-tools 產縮圖時
+  // 順手寫了 assets/thumbs.js(window.DECK_THUMBS = 160x90 data URI 陣列),這裡直接用。
+  var thumbDataUris = (typeof window.DECK_THUMBS !== 'undefined' && Array.isArray(window.DECK_THUMBS)) ? window.DECK_THUMBS : [];
+
   initSyncSocket();
 
   function broadcastState() {
@@ -243,7 +251,7 @@
         title: titleOf(slides[cur]),
         note: noteBlocks[cur] ? noteBlocks[cur].innerHTML : '',
         timer: ptimer ? ptimer.textContent : '00:00',
-        slides: slides.map(function(s, i) { return { title: titleOf(s) }; })
+        slides: slides.map(function(s, i) { return { title: titleOf(s), thumb: thumbDataUris[i] || '' }; })
       }));
     }
   }
