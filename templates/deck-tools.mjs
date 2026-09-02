@@ -172,13 +172,22 @@ for (let i = 1; i <= n; i++) {
       scrollH: s.scrollHeight > s.clientHeight + 4,
       scrollW: s.scrollWidth > s.clientWidth + 4,
       頂部留白: Math.round(Math.min(...boxes.map(r => r.top)) - barBottom),
-      底部留白: Math.round(window.innerHeight - Math.max(...boxes.map(r => r.bottom)))
+      底部留白: Math.round(window.innerHeight - Math.max(...boxes.map(r => r.bottom))),
+      // pre/table/ul 這種自己有 overflow 的,內容被捲掉台下一樣看不到,
+      // 但它不會讓外層溢出,所以上面兩個指標抓不到。2026-09-02 第 15 頁就這樣被切掉 236px。
+      捲掉的元素: [...s.querySelectorAll('pre, table, ul, ol, .points')]
+        .filter(e => e.scrollHeight > e.clientHeight + 8 || e.scrollWidth > e.clientWidth + 8)
+        .map(e => e.tagName.toLowerCase() + '(' + (e.scrollHeight - e.clientHeight) + 'px)')
     }
   })
 
   if (over) {
     if (over.scrollH || over.scrollW) {
       console.warn(`警告: 第 ${i} 頁內容超出可視範圍`)
+    }
+    if (over.捲掉的元素 && over.捲掉的元素.length) {
+      console.warn(`警告: 第 ${i} 頁有元素自己在捲,捲掉的部分投影機上看不到: ${over.捲掉的元素.join('、')}`)
+      tight++
     }
     if (over.頂部留白 < 16 || over.底部留白 < 16) {
       console.warn(`警告: 第 ${i} 頁內容快撞到邊了 (離頁首 ${over.頂部留白}px, 離底部 ${over.底部留白}px)。內容要減量`)
