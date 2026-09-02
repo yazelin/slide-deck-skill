@@ -4,7 +4,7 @@
 
 import { dirname, join, resolve, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, statSync, createReadStream } from 'node:fs'
+import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, statSync, createReadStream, readdirSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { createHash } from 'node:crypto'
@@ -42,6 +42,29 @@ function getLanIp() {
     }
   }
   return '127.0.0.1'
+}
+
+// 使用者給的路徑是相對於他的 cwd,但 deck-tools.mjs 與 handout-to-pdf.mjs 都是
+// resolve(自己所在的目錄, 參數),而且 deck-tools 只認 .html 結尾的參數。
+// 直接把資料夾名往下傳,它會安靜地改去驗 templates/deck.html 然後回報 OK,
+// 還會把 deck.pdf 跟 assets/ 寫進 templates/。所以這裡一律轉成絕對的 .html 路徑。
+function pickHtml (p, kind) {
+  if (!p) return []
+  const abs = resolve(process.cwd(), p)
+  if (!existsSync(abs)) {
+    console.error(`找不到: ${abs}`)
+    process.exit(1)
+  }
+  if (statSync(abs).isFile()) return [abs]
+  const isHandout = f => f.includes('講義') || f.includes('handout')
+  const hit = readdirSync(abs)
+    .filter(f => f.endsWith('.html'))
+    .filter(f => kind === 'handout' ? isHandout(f) : !isHandout(f))
+  if (!hit.length) {
+    console.error(`${abs} 裡找不到${kind === 'handout' ? '講義' : '簡報'}的 .html`)
+    process.exit(1)
+  }
+  return [join(abs, hit[0])]
 }
 
 if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
@@ -275,15 +298,14 @@ if (cmd === 'serve') {
 `)
   })
 } else if (cmd === 'verify' || cmd === 'export' || cmd === 'thumbs' || cmd === 'pdf') {
-  const target = targetDir || 'deck-tools.mjs'
-  const scriptPath = target.endsWith('.mjs') ? resolve(process.cwd(), target) : join(templatesDir, 'deck-tools.mjs')
-  const child = spawn(process.execPath, [scriptPath, ...(targetDir ? [targetDir] : []), cmd === 'export' ? 'all' : cmd], {
+  const scriptPath = join(templatesDir, 'deck-tools.mjs')
+  const child = spawn(process.execPath, [scriptPath, ...pickHtml(targetDir, 'deck'), cmd === 'export' ? 'all' : cmd], {
     stdio: 'inherit'
   })
   child.on('exit', code => process.exit(code || 0))
 } else if (cmd === 'handout') {
   const scriptPath = join(templatesDir, 'handout-to-pdf.mjs')
-  const child = spawn(process.execPath, [scriptPath, ...(targetDir ? [targetDir] : [])], {
+  const child = spawn(process.execPath, [scriptPath, ...pickHtml(targetDir, 'handout')], {
     stdio: 'inherit'
   })
   child.on('exit', code => process.exit(code || 0))

@@ -60,6 +60,53 @@ for (const f of ['deck.html', 'deck.css', 'deck-tools.mjs', 'handout.html', 'han
 
 rmSync(tmp, { recursive: true, force: true })
 
+// 2c. 從 repo 根目錄帶「資料夾名」跑 verify/handout。
+//     2026-09-02 發現:deck-tools.mjs 只認 .html 結尾的參數,資料夾名會被忽略,
+//     然後它去驗 templates/deck.html 並且回報 OK,還把 deck.pdf 與 assets/ 寫進 templates/。
+//     所以這裡除了驗「會過」,一定要配一條負控制:templates/ 不可以被寫到。
+{
+  let hasPw = false
+  try { execFileSync(node, ['-e', "import('playwright')"], { stdio: 'pipe' }); hasPw = true } catch {}
+  if (!hasPw) {
+    try {
+      const groot = execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['root', '-g'],
+                                 { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+      hasPw = existsSync(join(groot, 'playwright', 'index.js'))
+    } catch {}
+  }
+  if (!hasPw) console.log('skip 本機沒裝 playwright,跳過帶資料夾名的驗收')
+  else {
+    const tmp3 = mkdtempSync(join(tmpdir(), 'deck-dirarg-'))
+    const d = join(tmp3, '我的簡報')
+    execFileSync(node, [join(root, 'deck.mjs'), 'init', d, '--title', 'smoke'], { stdio: 'pipe' })
+    const dirty = ['deck.pdf', 'assets', 'handout.pdf'].map(f => join(root, 'templates', f))
+    const before = dirty.map(f => existsSync(f))
+
+    // 用 pdf 不用 verify:verify 本來就不寫檔,負控制會變成裝飾。
+    let ok = true
+    try { execFileSync(node, [join(root, 'deck.mjs'), 'pdf', d], { stdio: 'pipe', timeout: 120000 }) } catch { ok = false }
+    check(ok, 'deck.mjs pdf <資料夾> 跑得起來')
+    check(existsSync(join(d, 'deck.pdf')), '簡報 PDF 產在使用者的資料夾裡')
+
+    let okh = true
+    try { execFileSync(node, [join(root, 'deck.mjs'), 'handout', d], { stdio: 'pipe', timeout: 120000 }) } catch { okh = false }
+    check(okh, 'deck.mjs handout <資料夾> 跑得起來')
+    check(existsSync(join(d, 'handout.pdf')), '講義 PDF 產在使用者的資料夾裡')
+
+    const after = dirty.map(f => existsSync(f))
+    check(before.every((b, i) => b === after[i]), '負控制:templates/ 沒有被寫入(沒有安靜地跑錯對象)')
+
+    // 路徑不存在要當場報錯,不可以無聲改用 templates/
+    let errored = false
+    try { execFileSync(node, [join(root, 'deck.mjs'), 'verify', join(tmp3, '不存在')], { stdio: 'pipe' }) }
+    catch { errored = true }
+    check(errored, '負控制:給不存在的路徑要報錯')
+
+    rmSync(tmp3, { recursive: true, force: true })
+  }
+}
+
+
 // 3. 離線 serve:遙控頁真的送得出來,而且投影機端與手機端真的互通
 //    (2026-08-26 那版 /remote 是 404,而且伺服器講 SSE、簡報講 WebSocket,協定對不上)
 const port = 8300 + Math.floor(Math.random() * 400)
