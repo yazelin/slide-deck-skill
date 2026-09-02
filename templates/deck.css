@@ -219,7 +219,7 @@ body.present { overflow: auto; background: #0b0a08; }
 body.present .slide { display: none !important; }
 body.present .bar { display: none !important; }
 body.present #presenter {
-  display: grid; grid-template-columns: 380px 1fr; height: 100vh;
+  display: grid; grid-template-columns: 50% 1fr; height: 100vh;
   color: #f3efe6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 #pjump {
