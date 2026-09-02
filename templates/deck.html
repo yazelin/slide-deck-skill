@@ -397,6 +397,47 @@
   if (/[?&](present|p)(=|&|$)/.test(location.search)) document.body.classList.add('present');
 
   // 延遲載入 Iframe 與 Video
+  // 內嵌框當成小視窗:標題列可拖、右下角可拉大小、還原回原位。
+  // 沒有縮小與關閉——台上用不到,而且關掉之後要重連很麻煩。
+  // 拖曳只綁標題列,拖在內容上滑鼠事件會被 iframe 吃掉。
+  document.querySelectorAll('.livewrap').forEach(function(w) {
+    if (w.querySelector('.winbar')) return;
+    var slot = w.querySelector('[data-src]');
+    var name = (slot && (slot.dataset.src || '')).replace(/^https?:\/\//, '').slice(0, 46) || '';
+    var bar = document.createElement('div');
+    bar.className = 'winbar';
+    bar.innerHTML = '<i style="background:#fb5f57"></i><i style="background:#fdbc2e"></i>'
+      + '<i style="background:#28c840"></i>'
+      + '<button class="home" type="button" title="還原大小與位置">還原大小</button><span></span>';
+    bar.querySelector('span').textContent = name;
+    w.insertBefore(bar, w.firstChild);
+
+    var dx = 0, dy = 0, sx = 0, sy = 0, dragging = false;
+    function apply() { w.style.transform = (dx || dy) ? 'translate(' + dx + 'px,' + dy + 'px)' : ''; }
+    bar.addEventListener('pointerdown', function(e) {
+      if (e.target.closest('button') || w.classList.contains('maxi')) return;
+      dragging = true; sx = e.clientX - dx; sy = e.clientY - dy;
+      bar.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    bar.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      dx = e.clientX - sx; dy = e.clientY - sy; apply();
+    });
+    bar.addEventListener('pointerup', function(e) {
+      dragging = false;
+      try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
+    });
+    bar.querySelector('.home').addEventListener('click', function() {
+      dx = 0; dy = 0; apply();
+      w.style.width = ''; w.style.height = '';
+    });
+    // 滿版時把位移與尺寸收起來,還原時再放回去,不然 fixed 定位會被 transform 帶偏
+    w._winSave = function() { w._sv = [w.style.width, w.style.height, dx, dy];
+      w.style.width = ''; w.style.height = ''; w.style.transform = ''; };
+    w._winRestore = function() { if (!w._sv) return;
+      w.style.width = w._sv[0]; w.style.height = w._sv[1]; dx = w._sv[2]; dy = w._sv[3]; apply(); };
+  });
+
   document.querySelectorAll('.fsbtn[data-load]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var slot = document.getElementById(btn.dataset.load + '-slot');
@@ -430,7 +471,10 @@
     btn.addEventListener('click', function() {
       var w = document.getElementById(btn.dataset.max);
       if (!w) return;
+      var goingMax = !w.classList.contains('maxi');
+      if (goingMax && w._winSave) w._winSave();
       w.classList.toggle('maxi');
+      if (!goingMax && w._winRestore) w._winRestore();
       document.body.classList.toggle('has-maxi', w.classList.contains('maxi'));
       btn.textContent = w.classList.contains('maxi') ? '還原' : '滿版';
     });
