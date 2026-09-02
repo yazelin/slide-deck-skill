@@ -108,7 +108,7 @@ QR Code 會指到 `localhost`，手機連不到。
 3. 在哪裡講？（線上直播／會議室提案／錄影課程／寄出去自己看）
 4. 講多久？
 
-我全部回答完，再做這兩件事：
+我全部回答完，再做這三件事：
 
 一、讀完這兩個檔，照它的 class 命名與頁型寫，不要自己發明樣式：
 https://raw.githubusercontent.com/yazelin/slide-deck-skill/HEAD/templates/deck.html
