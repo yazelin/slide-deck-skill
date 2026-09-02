@@ -399,7 +399,8 @@
   // 延遲載入 Iframe 與 Video
   // 內嵌框當成小視窗:標題列可拖、右下角可拉大小、還原回原位。
   // 沒有縮小與關閉——台上用不到,而且關掉之後要重連很麻煩。
-  // 拖曳只綁標題列,拖在內容上滑鼠事件會被 iframe 吃掉。
+  // 一碰(拖或拉大小)就浮起來:原位留一個同尺寸的佔位方塊,框本身改成 fixed 疊在最上層。
+  // 不這樣做的話,拉大小會把同一頁其他內容推開,拖曳也會被後面的文字蓋住。
   document.querySelectorAll('.livewrap').forEach(function(w) {
     if (w.querySelector('.winbar')) return;
     var slot = w.querySelector('[data-src]');
@@ -412,30 +413,62 @@
     bar.querySelector('span').textContent = name;
     w.insertBefore(bar, w.firstChild);
 
-    var dx = 0, dy = 0, sx = 0, sy = 0, dragging = false;
-    function apply() { w.style.transform = (dx || dy) ? 'translate(' + dx + 'px,' + dy + 'px)' : ''; }
+    var spacer = null;
+    // ResizeObserver 是「改完之後」才觸發,那時候量到的已經是新尺寸,
+    // 拿它當佔位方塊會把同頁的東西推開。所以留著前一次的尺寸。
+    var prevW = 0, prevH = 0, curW = 0, curH = 0;
+    function popOut(pw, ph) {
+      if (spacer || w.classList.contains('maxi')) return;
+      var r = w.getBoundingClientRect();
+      spacer = document.createElement('div');
+      spacer.style.width = (pw || r.width) + 'px';
+      spacer.style.height = (ph || r.height) + 'px';
+      spacer.style.flex = 'none';
+      // 連 margin 一起複製,不然抽走這個框等於少了上下 margin,同頁的東西會往上跳
+      var cs = getComputedStyle(w);
+      spacer.style.margin = cs.margin;
+      w.parentNode.insertBefore(spacer, w);
+      w.style.position = 'fixed';
+      w.style.left = r.left + 'px'; w.style.top = r.top + 'px';
+      w.style.width = r.width + 'px'; w.style.height = r.height + 'px';
+      w.style.margin = '0'; w.style.maxWidth = 'none'; w.style.zIndex = 40;
+    }
+    function putBack() {
+      if (spacer) { spacer.remove(); spacer = null; }
+      prevW = 0; prevH = 0; curW = 0; curH = 0;
+      ['position', 'left', 'top', 'width', 'height', 'margin', 'maxWidth', 'zIndex'].forEach(function(k) { w.style[k] = ''; });
+    }
+
+    var sx = 0, sy = 0, ox = 0, oy = 0, dragging = false;
     bar.addEventListener('pointerdown', function(e) {
       if (e.target.closest('button') || w.classList.contains('maxi')) return;
-      dragging = true; sx = e.clientX - dx; sy = e.clientY - dy;
+      popOut();
+      dragging = true; sx = e.clientX; sy = e.clientY;
+      ox = parseFloat(w.style.left) || 0; oy = parseFloat(w.style.top) || 0;
       bar.setPointerCapture(e.pointerId); e.preventDefault();
     });
     bar.addEventListener('pointermove', function(e) {
       if (!dragging) return;
-      dx = e.clientX - sx; dy = e.clientY - sy; apply();
+      w.style.left = (ox + e.clientX - sx) + 'px';
+      w.style.top = (oy + e.clientY - sy) + 'px';
     });
     bar.addEventListener('pointerup', function(e) {
       dragging = false;
       try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
     });
-    bar.querySelector('.home').addEventListener('click', function() {
-      dx = 0; dy = 0; apply();
-      w.style.width = ''; w.style.height = '';
-    });
-    // 滿版時把位移與尺寸收起來,還原時再放回去,不然 fixed 定位會被 transform 帶偏
-    w._winSave = function() { w._sv = [w.style.width, w.style.height, dx, dy];
-      w.style.width = ''; w.style.height = ''; w.style.transform = ''; };
-    w._winRestore = function() { if (!w._sv) return;
-      w.style.width = w._sv[0]; w.style.height = w._sv[1]; dx = w._sv[2]; dy = w._sv[3]; apply(); };
+    // 右下角那個原生的 resize 把手:一動就浮起來,不然會把同頁其他內容推開
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(function() {
+        prevW = curW; prevH = curH;
+        curW = w.offsetWidth; curH = w.offsetHeight;
+        if (!spacer && prevW && !w.classList.contains('maxi')) popOut(prevW, prevH);
+      }).observe(w);
+    }
+    bar.querySelector('.home').addEventListener('click', putBack);
+
+    // 滿版前先放回正常流,還原後不自動浮起來(位置乾淨)
+    w._winSave = function() { putBack(); };
+    w._winRestore = function() {};
   });
 
   document.querySelectorAll('.fsbtn[data-load]').forEach(function(btn) {
