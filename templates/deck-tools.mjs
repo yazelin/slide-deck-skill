@@ -187,6 +187,8 @@ if (command === 'all' || command === 'thumbs') {
   const thumbDir = join(TARGET_DIR, 'assets/thumbs')
   mkdirSync(thumbDir, { recursive: true })
   
+  // 主控台左欄的縮圖會放大到約 450px 顯示(左欄佔一半、排兩欄),所以存 960px 寬,
+  // 剛好覆蓋 2 倍 DPR。存 320px 的話上台看到的是模糊的,判斷不出那一頁的版面配置。
   // template 的主控台縮圖抓 t<N>.webp。Playwright 的 screenshot() 只吐 png/jpeg,
   // 不能直接存 webp;用 canvas.toDataURL('image/webp') 轉一次再寫檔,副檔名才對得上。
   // 舊版寫 .webp 但 Playwright 拋錯後 fallback 成 .jpg,結果 template 全 404、左欄空白。
@@ -198,9 +200,9 @@ if (command === 'all' || command === 'thumbs') {
       img.src = 'data:image/jpeg;base64,' + jpegB64
       await img.decode()
       const c = document.createElement('canvas')
-      c.width = 320; c.height = Math.round(320 * img.naturalHeight / img.naturalWidth)
+      c.width = 960; c.height = Math.round(960 * img.naturalHeight / img.naturalWidth)
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-      return c.toDataURL('image/webp', 0.88).split(',')[1]
+      return c.toDataURL('image/webp', 0.82).split(',')[1]
     }, shots[i].toString('base64'))
     writeFileSync(join(thumbDir, `t${i + 1}.webp`), Buffer.from(b64, 'base64'))
     // 另存一份 160x90 的小 data URI(手機遙控觸控板底圖 + file:// 開啟時 host 讀不到本機檔的後備)
