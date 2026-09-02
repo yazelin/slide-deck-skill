@@ -434,6 +434,10 @@
       w.style.margin = '0'; w.style.maxWidth = 'none'; w.style.zIndex = 40;
     }
     function putBack() {
+      // 放回去本身就會改尺寸,會再觸發 ResizeObserver。不壓住的話它會拿舊值
+      // 再浮出來一次,算出 0 寬高,框就等於消失了。
+      w._noPop = true;
+      setTimeout(function() { w._noPop = false; prevW = 0; prevH = 0; curW = 0; curH = 0; }, 300);
       if (spacer) { spacer.remove(); spacer = null; }
       prevW = 0; prevH = 0; curW = 0; curH = 0;
       ['position', 'left', 'top', 'width', 'height', 'margin', 'maxWidth', 'zIndex'].forEach(function(k) { w.style[k] = ''; });
@@ -466,6 +470,20 @@
       }).observe(w);
     }
     bar.querySelector('.home').addEventListener('click', putBack);
+
+    // 離開這一頁就自動放回正常流。浮起來的時候座標是「當下視窗」的絕對座標,
+    // 一旦視窗大小變了(例如按 F11 全螢幕)就會跑到畫面外,看起來像不見了。
+    // 換頁時放回去,回來一定在原位。
+    var slide = w.closest('.slide');
+    if (slide && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(function() {
+        if (!slide.classList.contains('active') && spacer && !w.classList.contains('maxi')) putBack();
+      }).observe(slide, { attributes: true, attributeFilter: ['class'] });
+    }
+    // 視窗大小一變也放回去,同樣的理由
+    window.addEventListener('resize', function() {
+      if (spacer && !w.classList.contains('maxi')) putBack();
+    });
 
     // 滿版前先放回正常流,還原後不自動浮起來(位置乾淨)
     // 進出滿版:先放回正常流,並在前後各壓住一拍 ResizeObserver,
