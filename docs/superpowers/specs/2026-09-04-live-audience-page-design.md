@@ -92,26 +92,27 @@
 
 暱稱第一次進來自動發一個可愛代號，存進 `localStorage`，下次進來還在，隨時可以改。
 
-房間還沒活起來時（`/state` 回傳的 `last_state` 是 `null`），頁面顯示直播還沒開始，`iframe` 不載入。這對上了「沒推內容就沒東西看」的預期。
+留言、在線人數與按鈕永遠可用，不綁講者在不在線上。只有簡報區與跟隨翻頁需要 `host`：講者還沒開簡報時，那一格顯示「講者還沒開簡報」，觀眾之間已經可以先講話。
 
-## 五、`deck.html` 的兩個新模式
+`/stage` 在講者還沒把 deck 推上線（網址取不到）時，簡報區顯示一張大 QR 加上「即將開始」，側欄照常運作。開播前與中場休息都用這個畫面。
 
-### viewer 模式
+## 五、`deck.html` 的 viewer 模式
 
 網址帶 `?role=viewer` 時：WebSocket 以 `role=viewer` 連線不帶 pin；不呼叫 `broadcastState`；不綁鍵盤與滑鼠翻頁；隱藏主控台與手機遙控按鈕；收到 `host` 的 `state` 就 `show(msg.page, true)`。
 
-### host 的右側欄
+`deck.html` 的版面一行都不動。既有簡報手工調過的排版與溢出檢查結果因此完全不受影響。
 
-`host` 模式加一條可收合的右側欄，寬度約 22%，簡報區相應縮排。這是講者分享到 Google Meet 的畫面，所以側欄的內容等於全體觀眾看得到的內容。
+## 五之二、`/stage` 講者外框頁
 
-側欄由上到下：
+側欄不寫進 `deck.html`，另開一頁 `/stage?room=wed&deck=<簡報網址>` 把簡報用 `iframe` 裝起來，側欄擺在旁邊。講者直播時分享這個分頁。
 
-1. QR Code 加短網址，指向 `/live?room=wed&deck=…`。常駐，晚進來的人隨時掃得到。
-2. 在線人數。
-3. 計數列：快、慢、卡、讚、同意。
-4. 留言，依讚數排序，容納約六到八則，其餘捲動。
+- 左：`iframe` 以原始 16:9 比例呈現簡報，`role` 留空（講者這台就是 `host`）。
+- 右：側欄，寬約 22%，由上到下是 QR Code 加短網址、在線人數、計數列（快、慢、卡、讚、同意）、留言（依讚數排序，容納六到八則，其餘捲動）。
+- 側欄可以用一個鍵收合，遇到需要整個畫面的頁面時用得上。
 
-側欄可以用一個鍵收合，遇到需要整個畫面的頁面時用得上。
+QR 常駐而不是只放第一頁，晚進來的人隨時掃得到。
+
+`/stage` 與 `/live` 是同一支 HTML，用 `mode` 參數切版面與顯示哪些區塊，所以側欄與留言的程式碼只寫一次。翻頁鍵盤要先點一下 `iframe` 取得焦點，或照舊用手機遙控。
 
 ## 六、遙控器補強
 
@@ -123,9 +124,9 @@
 
 ## 驗收
 
-1. `worker/test/tally.mjs`，用 `node:test` 與 `assert`，不引入框架。要斷言的行為：翻頁把 `pace` 清零；同一連線重按同一顆等於取消；改按另一顆等於改票；`react` 純累加、不受翻頁影響；同一連線對同一則留言按讚只算一次；留言超過 100 則捨棄最舊的；排序是讚數優先、同讚數比時間；`answered` 的留言排到最後。
+1. 計數邏輯抽成 `worker/src/tally.mjs`，不依賴 Cloudflare 執行環境，由 `scripts/smoke.mjs` 直接 import 斷言（沿用這個 repo 既有的 `check()` 風格，不另外引入測試框架）。要斷言的行為：翻頁把 `pace` 清零；同一連線重按同一顆等於取消；改按另一顆等於改票；`react` 純累加、不受翻頁影響；同一連線對同一則留言按讚只算一次；留言超過 100 則捨棄最舊的；排序是讚數優先、同讚數比時間；`answered` 的留言排到最後。
 2. `scripts/smoke.mjs` 補一段 Playwright：開一個 host 與兩個 viewer，host 翻頁後兩個 viewer 的頁碼跟上；兩個 viewer 都按快一點得到 2，host 再翻一頁後歸 0；viewer A 留言，viewer B 看得到並按讚，該則浮到最上面；host 的側欄同步顯示這則留言；在線人數顯示 2。
 
 ## 影響檔案
 
-`worker/src/index.ts`、`templates/deck.html`、`scripts/smoke.mjs`、`worker/test/tally.mjs`（新增）、`README.md`、`SKILL.md`
+`worker/src/index.ts`、`worker/src/tally.mjs`（新增，純邏輯好測）、`templates/deck.html`、`scripts/smoke.mjs`、`README.md`、`SKILL.md`

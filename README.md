@@ -183,3 +183,8 @@ MIT License © [林亞澤 (Yaze Lin)](https://github.com/yazelin)
   <a href="https://www.facebook.com/yaze.lin.gm">Facebook</a> ·
   <a href="https://buymeacoffee.com/yazelin">請亞澤喝咖啡</a>
 </p>
+
+## 放進 Larch 視覺小說裡講（larch-slide-deck）
+
+同一套版面有一個 Larch 插件版：[yazelin/larch-slide-deck](https://github.com/yazelin/larch-slide-deck)。簡報用 Markdown 型標記寫（`---` 分頁、`# 標題`、`- 條列`、`| 表格 |`、`> 講稿`、`@embed 網址`），`push.py` 推成專案裡的一張全螢幕插件卡，N／P／方向鍵、手機遙控、配色都在。要在 Larch 的播放器裡講簡報就用它，不要把 deck.html 整份塞進小遊戲卡。
+
