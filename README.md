@@ -172,6 +172,49 @@ https://raw.githubusercontent.com/yazelin/slide-deck-skill/HEAD/templates/deck.c
 
 ---
 
+## 內嵌真站與備援影片（這套簡報最常用的一塊）
+
+一個 `.livewrap` 就是投影片裡的一個小視窗，載入之後可以在上面真的操作。播放時腳本會自動幫它加一條假的瀏覽器視窗列（`.winbar`，三顆燈加網址），那條列是唯一的拖曳把手（拖在內容上會被 iframe 吃掉），右下角可以拉大小。
+
+```html
+<div class="livewrap" id="demo-box">
+  <button class="fsbtn" data-load="demo-box" type="button">載入</button>
+  <button class="fsbtn alt2" data-video="demo-box" type="button">備援影片</button>
+  <div id="demo-box-slot" class="poster"
+       style="background-image:url(assets/poster/demo.webp)"
+       data-hint="按「載入」開始"
+       data-src="https://example.com"
+       data-video="assets/video/demo.mp4"></div>
+</div>
+```
+
+四種行為，都掛在 `.fsbtn` 上，值一律是外框的 id：
+
+| 屬性 | 做的事 |
+|---|---|
+| `data-load` | 把 slot 換成 iframe，網址讀 slot 的 `data-src`。**不預載**，按了才連 |
+| `data-video` | 把 slot 換成預錄影片，檔案讀 slot 的 `data-video`。現場網路或站台出狀況時同一個位置直接頂上 |
+| `data-max` | 這個框滿版（`96vw × 96vh`）與還原。滿版時方向鍵歸裡面那份，`Esc` 還原 |
+| 都不加 | 直接寫 `<iframe class="livebox" src="…">`，頁面一到就載 |
+
+`class="poster"` 加 `background-image` 是還沒載入時的預覽圖，`data-hint` 是圖上那行提示。**匯出 PDF 的時候那幾頁才不會是空框**。
+
+現場的兩個習慣：網路不確定的站用 `data-load`，重要的示範站一定要錄一支備援影片掛 `data-video`。這兩顆按鈕顏色不同，就是為了現場不按錯。
+
+## 嵌之前要確認的三件事
+
+能不能嵌，決定於**對方的站**，不是簡報：
+
+1. **對方不能設 `X-Frame-Options` 或 `frame-ancestors`。** GitHub Pages 沒設，嵌得動；Larch 的市集頁有設，只能開新分頁。`curl -sI <網址> | grep -i "x-frame\\|content-security"` 一秒看得出來。
+2. **對方站碰得到儲存空間嗎。** 這條只在**簡報本身跑在 sandbox iframe 裡**時才踩得到（例如整份簡報變成 Larch 的插件卡）。那個環境的 origin 是 null，`localStorage`、`sessionStorage`、`IndexedDB`、Service Worker 全部一碰就丟 SecurityError，開機就讀 storage 的站會整支腳本當場死掉，畫面停在載入中。自己的站就包一層：拿不到就換一個記憶體版的物件，功能照跑、只是關掉就忘。
+3. **對方站的音訊有沒有帶 `crossorigin="anonymous"`。** 同樣只在 sandbox 裡發生，但**症狀最難認**：進度在走、狀態寫著播放中、音量也不是 0，就是沒有聲音，頻譜還全平。因為 origin 變成 null 之後，那個站自己的 mp3 對它來說是跨網域，沒用 CORS 模式載入的音訊一旦接進 `AudioContext`（`createMediaElementSource`）就會被消音。加上屬性就好，GitHub Pages 對音檔本來就回 `Access-Control-Allow-Origin: *`。
+
+**驗收要量頻譜能量，不要量畫面。** 這三件事都不報錯。可靠的做法是在一個 `sandbox="allow-scripts"` 的 iframe 裡再嵌那個站，攔 `AnalyserNode.prototype.getByteFrequencyData` 把節點抓出來、加總幾次取平均：**沒聲音是 0，有聲音是四位數**。數 canvas 的亮點沒有用，特效動畫本來就一直在動，有沒有聲音都看不出差別。
+
+## 放進 Larch 視覺小說裡講（larch-slide-deck）
+
+同一套版面有一個 Larch 插件版：[yazelin/larch-slide-deck](https://github.com/yazelin/larch-slide-deck)。簡報用 Markdown 型標記寫（`---` 分頁、`# 標題`、`- 條列`、`| 表格 |`、`> 講稿`、`@embed 網址`），`push.py` 推成專案裡的一張全螢幕插件卡，N／P／方向鍵、手機遙控、配色都在。要在 Larch 的播放器裡講簡報就用它，不要把 deck.html 整份塞進小遊戲卡。
+
 ## 授權
 
 MIT License © [林亞澤 (Yaze Lin)](https://github.com/yazelin)
@@ -183,20 +226,3 @@ MIT License © [林亞澤 (Yaze Lin)](https://github.com/yazelin)
   <a href="https://www.facebook.com/yaze.lin.gm">Facebook</a> ·
   <a href="https://buymeacoffee.com/yazelin">請亞澤喝咖啡</a>
 </p>
-
-## 頁裡內嵌別的站，要先確認三件事
-
-簡報頁的 `.livewrap` 可以把一個真站嵌進來現場操作。能不能嵌，決定於**對方的站**，不是簡報：
-
-1. **對方不能設 `X-Frame-Options` 或 `frame-ancestors`。** GitHub Pages 沒設，嵌得動；Larch 的市集頁有設，只能開新分頁。用 `curl -sI <網址> | grep -i "x-frame\|content-security"` 一秒看得出來。
-2. **對方站碰得到儲存空間嗎。** 這條只在**簡報本身跑在 sandbox iframe 裡**時才會踩到（例如整份簡報變成 Larch 的插件卡）。那個環境的 origin 是 null，`localStorage`、`sessionStorage`、`IndexedDB`、Service Worker 全部一碰就丟 SecurityError。開機就讀 storage 的站會整支腳本當場死掉，畫面停在載入中。自己的站就包一層：拿不到就換一個記憶體版的物件，功能照跑、只是關掉就忘。
-3. **對方站的音訊有沒有帶 `crossorigin="anonymous"`。** 同樣只在 sandbox 裡發生，但**症狀最難認**：進度在走、狀態寫著播放中、音量也不是 0，就是沒有聲音，頻譜還全平。原因是 origin 變成 null 之後，那個站自己的 mp3 對它來說是跨網域，沒用 CORS 模式載入的音訊一旦接進 `AudioContext`（`createMediaElementSource`）就會被消音。加上屬性就好，GitHub Pages 對音檔本來就回 `Access-Control-Allow-Origin: *`。
-
-**驗收要量頻譜能量，不要量畫面。** 這三件事都不會報錯。可靠的做法是在一個 `sandbox="allow-scripts"` 的 iframe 裡再嵌那個站，攔 `AnalyserNode.prototype.getByteFrequencyData` 把節點抓出來，加總幾次取平均：**沒聲音時是 0，有聲音是四位數**。數 canvas 的亮點沒有用，因為特效動畫本來就一直在動，有沒有聲音都看不出差別。
-
-現場穩定度的兩個習慣：網路不確定的站用 `data-load` 讓它按了才載，重要的示範站再錄一支 `data-video` 備援影片放在同一個框裡。
-
-## 放進 Larch 視覺小說裡講（larch-slide-deck）
-
-同一套版面有一個 Larch 插件版：[yazelin/larch-slide-deck](https://github.com/yazelin/larch-slide-deck)。簡報用 Markdown 型標記寫（`---` 分頁、`# 標題`、`- 條列`、`| 表格 |`、`> 講稿`、`@embed 網址`），`push.py` 推成專案裡的一張全螢幕插件卡，N／P／方向鍵、手機遙控、配色都在。要在 Larch 的播放器裡講簡報就用它，不要把 deck.html 整份塞進小遊戲卡。
-
