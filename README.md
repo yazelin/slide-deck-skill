@@ -11,7 +11,7 @@
 - **講者雙螢幕主控台（按 P）**：筆電開主控台（看講稿備註、縮圖清單、超時警示），投影機開全螢幕投影片，兩視窗透過 localStorage 毫秒級自動同步（斷網亦穩定運作）。
 - **PACE 節奏時間守護**：內建每頁目標時間倒數，講超時右上角計時器自動轉紅提醒。
 - **自動化驗收與 16:9 PDF 匯出**：透過 Playwright 自動翻頁測試，自動偵測排版溢出、自動生成縮圖清單、無損匯出 16:9 PDF。
-- **學員講義配套**：內建獨立的 handout.html 與一鍵 A4 PDF 轉檔工具。
+- **學員講義配套**：內建獨立的 handout.html 與按一下 A4 PDF 轉檔工具。
 - **開源中繼服務**：內建極簡 Cloudflare Worker WebSocket 轉發架構（worker/），零資料庫、零隱私洩漏。
 
 ---
@@ -207,7 +207,7 @@ https://raw.githubusercontent.com/yazelin/slide-deck-skill/HEAD/templates/deck.c
 
 1. **對方不能設 `X-Frame-Options` 或 `frame-ancestors`。** GitHub Pages 沒設，嵌得動；Larch 的市集頁有設，只能開新分頁。`curl -sI <網址> | grep -i "x-frame\\|content-security"` 一秒看得出來。
 2. **對方站碰得到儲存空間嗎。** 這條只在**簡報本身跑在 sandbox iframe 裡**時才踩得到（例如整份簡報變成 Larch 的插件卡）。那個環境的 origin 是 null，`localStorage`、`sessionStorage`、`IndexedDB`、Service Worker 全部一碰就丟 SecurityError，開機就讀 storage 的站會整支腳本當場死掉，畫面停在載入中。自己的站就包一層：拿不到就換一個記憶體版的物件，功能照跑、只是關掉就忘。
-3. **對方站的音訊有沒有帶 `crossorigin="anonymous"`。** 同樣只在 sandbox 裡發生，但**症狀最難認**：進度在走、狀態寫著播放中、音量也不是 0，就是沒有聲音，頻譜還全平。因為 origin 變成 null 之後，那個站自己的 mp3 對它來說是跨網域，沒用 CORS 模式載入的音訊一旦接進 `AudioContext`（`createMediaElementSource`）就會被消音。加上屬性就好，GitHub Pages 對音檔本來就回 `Access-Control-Allow-Origin: *`。
+3. **對方站的音訊有沒有帶 `crossorigin="anonymous"`。** 同樣只在 sandbox 裡發生，但**症狀最難認**：進度照走、狀態顯示播放中、音量滿格，聲音卻是靜的，頻譜全平。因為 origin 變成 null 之後，那個站自己的 mp3 對它來說是跨網域，沒用 CORS 模式載入的音訊一旦接進 `AudioContext`（`createMediaElementSource`）就會被消音。加上屬性就好，GitHub Pages 對音檔本來就回 `Access-Control-Allow-Origin: *`。
 
 **驗收要量頻譜能量，不要量畫面。** 這三件事都不報錯。可靠的做法是在一個 `sandbox="allow-scripts"` 的 iframe 裡再嵌那個站，攔 `AnalyserNode.prototype.getByteFrequencyData` 把節點抓出來、加總幾次取平均：**沒聲音是 0，有聲音是四位數**。數 canvas 的亮點沒有用，特效動畫本來就一直在動，有沒有聲音都看不出差別。
 
