@@ -184,6 +184,18 @@ MIT License © [林亞澤 (Yaze Lin)](https://github.com/yazelin)
   <a href="https://buymeacoffee.com/yazelin">請亞澤喝咖啡</a>
 </p>
 
+## 頁裡內嵌別的站，要先確認三件事
+
+簡報頁的 `.livewrap` 可以把一個真站嵌進來現場操作。能不能嵌，決定於**對方的站**，不是簡報：
+
+1. **對方不能設 `X-Frame-Options` 或 `frame-ancestors`。** GitHub Pages 沒設，嵌得動；Larch 的市集頁有設，只能開新分頁。用 `curl -sI <網址> | grep -i "x-frame\|content-security"` 一秒看得出來。
+2. **對方站碰得到儲存空間嗎。** 這條只在**簡報本身跑在 sandbox iframe 裡**時才會踩到（例如整份簡報變成 Larch 的插件卡）。那個環境的 origin 是 null，`localStorage`、`sessionStorage`、`IndexedDB`、Service Worker 全部一碰就丟 SecurityError。開機就讀 storage 的站會整支腳本當場死掉，畫面停在載入中。自己的站就包一層：拿不到就換一個記憶體版的物件，功能照跑、只是關掉就忘。
+3. **對方站的音訊有沒有帶 `crossorigin="anonymous"`。** 同樣只在 sandbox 裡發生，但**症狀最難認**：進度在走、狀態寫著播放中、音量也不是 0，就是沒有聲音，頻譜還全平。原因是 origin 變成 null 之後，那個站自己的 mp3 對它來說是跨網域，沒用 CORS 模式載入的音訊一旦接進 `AudioContext`（`createMediaElementSource`）就會被消音。加上屬性就好，GitHub Pages 對音檔本來就回 `Access-Control-Allow-Origin: *`。
+
+**驗收要量頻譜能量，不要量畫面。** 這三件事都不會報錯。可靠的做法是在一個 `sandbox="allow-scripts"` 的 iframe 裡再嵌那個站，攔 `AnalyserNode.prototype.getByteFrequencyData` 把節點抓出來，加總幾次取平均：**沒聲音時是 0，有聲音是四位數**。數 canvas 的亮點沒有用，因為特效動畫本來就一直在動，有沒有聲音都看不出差別。
+
+現場穩定度的兩個習慣：網路不確定的站用 `data-load` 讓它按了才載，重要的示範站再錄一支 `data-video` 備援影片放在同一個框裡。
+
 ## 放進 Larch 視覺小說裡講（larch-slide-deck）
 
 同一套版面有一個 Larch 插件版：[yazelin/larch-slide-deck](https://github.com/yazelin/larch-slide-deck)。簡報用 Markdown 型標記寫（`---` 分頁、`# 標題`、`- 條列`、`| 表格 |`、`> 講稿`、`@embed 網址`），`push.py` 推成專案裡的一張全螢幕插件卡，N／P／方向鍵、手機遙控、配色都在。要在 Larch 的播放器裡講簡報就用它，不要把 deck.html 整份塞進小遊戲卡。
